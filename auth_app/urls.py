@@ -4,5 +4,6 @@ from . import views
 
 # URLConf
 urlpatterns = [
-    path('', views.login_user, name='login'),
+    path('login/', views.login_user, name='login'),
+    path('register/', views.register_user, name='register')
 ]

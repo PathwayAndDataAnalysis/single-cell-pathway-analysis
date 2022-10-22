@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 django-debug-toolbar = "*"
+mongoengine = "*"
+django-rest-framework-mongoengine = "*"
 
 [dev-packages]
 
