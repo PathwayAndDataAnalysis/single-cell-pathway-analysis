@@ -9,6 +9,10 @@ mongoengine = "*"
 django-rest-framework-mongoengine = "*"
 django-cors-headers = "*"
 django = "*"
+djangorestframework = "*"
+djangorestframework-simplejwt = "*"
+pyjwt = "*"
+pycodestyle = "*"
 
 [dev-packages]
 

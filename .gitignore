@@ -269,3 +269,4 @@ GitHub.sublime-settings
 .idea
 
 .DS_Store
+data/*
