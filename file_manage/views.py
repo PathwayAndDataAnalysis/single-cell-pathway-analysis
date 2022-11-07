@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 
 from django.http import HttpResponse, JsonResponse
 
@@ -45,6 +46,12 @@ def upload_file(request):
         return httpMethodError("POST", request.method)
 
 
+def convert_date(timestamp):
+    d = datetime.utcfromtimestamp(timestamp)
+    formatted_date = d.strftime('%d %b %Y')
+    return formatted_date
+
+
 def get_all_files(request):
     if request.method == "GET":
         try:
@@ -52,7 +59,13 @@ def get_all_files(request):
             with os.scandir("data/kisan@gmail.com/") as entries:
                 for entry in entries:
                     print(entry)
-                    files.append(entry.name)
+                    fileInfo = entry.stat()
+                    uploadDate = convert_date(fileInfo.st_ctime)
+                    fileSize = fileInfo.st_size / 1024
+
+                    print("fileInfo", fileInfo)
+                    files.append({"fileName": entry.name, "fileSize": round(fileSize, 3), "uploadDate": uploadDate})
+
             return JsonResponse({'files': files})
 
         except Exception as e:
