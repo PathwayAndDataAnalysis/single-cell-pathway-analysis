@@ -78,7 +78,8 @@ def get_distance_matrix(dataF):
 
         for j in range(i + 1, nCol):
             v2 = dataF.iloc[:, j].to_numpy()
-            d = np.dot(v1, v2)
+            dif = v1 - v2
+            d = np.dot(dif, dif)
             dist_mat[i][j] = d
             dist_mat[j][i] = d
 
