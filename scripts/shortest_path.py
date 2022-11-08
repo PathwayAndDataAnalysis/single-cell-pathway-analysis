@@ -1,6 +1,8 @@
+import numpy
 import pandas as pd
 import numpy as np
 import math
+import scipy.stats as stats
 
 
 def get_min_elem(que, dist):
@@ -90,7 +92,7 @@ def write_distance_matrix(input_file, output_file):
     dataF = pd.read_table(input_file, index_col=0)
     dist = get_distance_matrix(dataF)
     cols = dataF.columns.values.tolist()
-    distF = pd.DataFrame(data=dist, index = cols, columns = cols)
+    distF = pd.DataFrame(data=dist, index=cols, columns=cols)
     distF.to_csv(output_file, sep="\t")
 
 
@@ -107,4 +109,44 @@ def get_traj_and_time(dist_file:str, source_cell:str, target_cell:str):
     path_as_cells = get_path_as_cell_names(path_as_ind, cols)
     return path_as_cells, time
 
+
+def get_indices(cells, traj):
+    indices = []
+    for i in range(0, len(traj)):
+        indices.append(cells.index(traj[i]))
+    return indices
+
+
+def get_traj_sorted_values(all_vals, traj_ind):
+    vals = []
+
+    for i in traj_ind:
+        vals.append(all_vals[i])
+
+    return vals
+
+
+def write_changes(input_path, traj, time, output_path):
+    dataF = pd.read_table(input_path, index_col=0)
+    cols = dataF.columns.values.tolist()
+    genes = dataF.index.values.tolist()
+    indices = get_indices(cols, traj)
+    mat = dataF.to_numpy()
+    pvals = {}
+
+    for i in range(0, len(genes)):
+        gene = genes[i]
+        vals = get_traj_sorted_values(mat[i], indices)
+        tau, p_value = stats.kendalltau(vals, time)
+        pvals[gene] = p_value
+
+        if tau < 0:
+            p_value = -p_value
+
+        pvals[gene] = p_value
+
+    with open(output_path, 'w') as f:
+        f.write("Gene\tSignedP")
+        for key, value in pvals.items():
+            f.write('\n%s\t%e' % (key, value))
 
