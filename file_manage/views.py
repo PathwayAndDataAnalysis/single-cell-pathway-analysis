@@ -56,7 +56,7 @@ def get_all_files(request):
     if request.method == "GET":
         try:
             files = []
-            with os.scandir("data/kisan@gmail.com/") as entries:
+            with os.scandir("data/kisan@gmail.com/files/") as entries:
                 for entry in entries:
                     print(entry)
                     fileInfo = entry.stat()
@@ -83,7 +83,7 @@ def delete_file(request):
             req_body = json.loads(request.body.decode('utf-8'))
             print(req_body)
 
-            file_to_delete = "data/kisan@gmail.com/" + req_body['file']
+            file_to_delete = "data/kisan@gmail.com/files/" + req_body['file']
             # If file exists, delete it
             if os.path.isfile(file_to_delete):
                 os.remove(file_to_delete)

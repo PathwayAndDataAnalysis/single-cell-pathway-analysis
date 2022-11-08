@@ -54,7 +54,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'debug_toolbar',
     'auth_app',
-    'file_manage'
+    'file_manage',
+    'analysis',
 ]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000
