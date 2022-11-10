@@ -4,6 +4,7 @@ import numpy as np
 import math
 import scipy.stats as stats
 from sklearn.utils.extmath import randomized_svd
+from scipy.spatial import distance
 
 
 def get_min_elem(que, dist):
@@ -89,9 +90,34 @@ def get_distance_matrix(dataF):
     return dist_mat
 
 
+def get_cosine_distance_matrix(dataF):
+    nCol = len(dataF.columns)
+    dist_mat = np.full((nCol, nCol), math.inf)
+
+    for i in range(0, nCol - 1):
+        v1 = dataF.iloc[:, i].to_numpy()
+
+        for j in range(i + 1, nCol):
+            v2 = dataF.iloc[:, j].to_numpy()
+            d = distance.cosine(v1, v2)
+            d = d * d
+            dist_mat[i][j] = d
+            dist_mat[j][i] = d
+
+    return dist_mat
+
+
 def write_distance_matrix(input_file, output_file):
     dataF = pd.read_table(input_file, index_col=0)
     dist = get_distance_matrix(dataF)
+    cols = dataF.columns.values.tolist()
+    distF = pd.DataFrame(data=dist, index=cols, columns=cols)
+    distF.to_csv(output_file, sep="\t")
+
+
+def write_cosine_distance_matrix(input_file, output_file):
+    dataF = pd.read_table(input_file, index_col=0)
+    dist = get_cosine_distance_matrix(dataF)
     cols = dataF.columns.values.tolist()
     distF = pd.DataFrame(data=dist, index=cols, columns=cols)
     distF.to_csv(output_file, sep="\t")
@@ -169,3 +195,8 @@ def k_rank_svd(input_path: str, k: int, output_path: str):
 
     dataF_red = pd.DataFrame(mat_reduced, columns=cells, index=genes)
     dataF_red.to_csv(output_path, sep="\t")
+
+
+def transpose_table(input_path: str, output_path: str):
+    dataF = pd.read_table(input_path, index_col=0)
+    dataF.transpose().to_csv(output_path, sep="\t")
