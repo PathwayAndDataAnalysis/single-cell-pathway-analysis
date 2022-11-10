@@ -1,6 +1,9 @@
+import numpy
 import pandas as pd
 import numpy as np
 import math
+import scipy.stats as stats
+from sklearn.utils.extmath import randomized_svd
 
 
 def get_min_elem(que, dist):
@@ -78,7 +81,8 @@ def get_distance_matrix(dataF):
 
         for j in range(i + 1, nCol):
             v2 = dataF.iloc[:, j].to_numpy()
-            d = np.dot(v1, v2)
+            dif = v1 - v2
+            d = np.dot(dif, dif)
             dist_mat[i][j] = d
             dist_mat[j][i] = d
 
@@ -89,11 +93,11 @@ def write_distance_matrix(input_file, output_file):
     dataF = pd.read_table(input_file, index_col=0)
     dist = get_distance_matrix(dataF)
     cols = dataF.columns.values.tolist()
-    distF = pd.DataFrame(data=dist, index = cols, columns = cols)
+    distF = pd.DataFrame(data=dist, index=cols, columns=cols)
     distF.to_csv(output_file, sep="\t")
 
 
-def get_traj_and_time(dist_file:str, source_cell:str, target_cell:str):
+def get_traj_and_time(dist_file: str, source_cell: str, target_cell: str):
     distF = pd.read_table(dist_file, index_col=0)
     cols = distF.columns.values.tolist()
     dist_mat = distF.to_numpy()
@@ -107,3 +111,61 @@ def get_traj_and_time(dist_file:str, source_cell:str, target_cell:str):
     return path_as_cells, time
 
 
+def get_indices(cells, traj):
+    indices = []
+    for i in range(0, len(traj)):
+        indices.append(cells.index(traj[i]))
+    return indices
+
+
+def get_traj_sorted_values(all_vals, traj_ind):
+    vals = []
+
+    for i in traj_ind:
+        vals.append(all_vals[i])
+
+    return vals
+
+
+def write_changes(input_path, traj, time, output_path):
+    dataF = pd.read_table(input_path, index_col=0)
+    cols = dataF.columns.values.tolist()
+    genes = dataF.index.values.tolist()
+    indices = get_indices(cols, traj)
+    mat = dataF.to_numpy()
+    pvals = {}
+
+    for i in range(0, len(genes)):
+        gene = genes[i]
+        vals = get_traj_sorted_values(mat[i], indices)
+        tau, p_value = stats.kendalltau(vals, time)
+
+        if not math.isnan(p_value):
+            if tau < 0:
+                p_value = -p_value
+
+            pvals[gene] = p_value
+
+    with open(output_path, 'w') as f:
+        f.write("Gene\tSignedP")
+        for key, value in pvals.items():
+            f.write('\n%s\t%e' % (key, value))
+
+
+def k_rank_svd(input_path: str, k: int, output_path: str):
+    dataF = pd.read_table(input_path, index_col=0)
+    cells = dataF.columns.values.tolist()
+    genes = dataF.index.values.tolist()
+    mat = dataF.to_numpy()
+
+    u, s, vt = randomized_svd(mat, n_components=k, random_state=None)
+    mat_reduced = np.matmul(np.matmul(u, np.diag(s)), vt)
+
+    # Set negative values to 0
+    for i in range(len(genes)):
+        for j in range(len(cells)):
+            if mat_reduced[i][j] < 0:
+                mat_reduced[i][j] = 0
+
+    dataF_red = pd.DataFrame(mat_reduced, columns=cells, index=genes)
+    dataF_red.to_csv(output_path, sep="\t")
