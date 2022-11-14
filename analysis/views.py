@@ -84,7 +84,7 @@ def run_analysis(request):
                 param_file['pcaCount'] = req_body['pcaCount']
             else:
                 param_file['usePCA'] = req_body['usePCA']
-                param_file['pcaFile'] = req_body['selectedPCAFile']
+                param_file['pcaFile'] = req_body['pcaFile']
 
             if req_body['useUMAP']:
                 param_file['useUMAP'] = req_body['useUMAP']
@@ -93,7 +93,7 @@ def run_analysis(request):
                 param_file['metric'] = req_body['metric']
             else:
                 param_file['useUMAP'] = req_body['useUMAP']
-                param_file['umapFile'] = req_body['selectedUMAPFile']
+                param_file['umapFile'] = req_body['umapFile']
 
             param_file_json = json.dumps(param_file, indent=4)
             analysis_file = 'data/kisan@gmail.com/analysis/' + req_body['analysisName'] + '/params.json'
