@@ -21,7 +21,6 @@ def upload_file(request):
     if request.method == 'POST':
         try:
             data_str = request.body.decode('utf-8')
-            # print(data_str)
 
             # extract filename
             name_data = ((data_str.split("\n", 4)[1]).split(";")[-1]).split('"')[1]
@@ -32,7 +31,7 @@ def upload_file(request):
             data_str = data_str[:data_str.rfind('\n')]
 
             # print(data_str)
-            filename = "data/kisan@gmail.com/" + name_data
+            filename = "data/kisan@gmail.com/files/" + name_data
             with safe_open_w(filename) as f:
                 f.write(data_str)
 
@@ -61,10 +60,22 @@ def get_all_files(request):
                     print(entry)
                     fileInfo = entry.stat()
                     uploadDate = convert_date(fileInfo.st_ctime)
+
+                    sizeUnit = "KB"
                     fileSize = fileInfo.st_size / 1024
 
+                    if fileSize > 1024:
+                        fileSize = fileSize / 1024
+                        sizeUnit = "MB"
+
+                    if fileSize > 1024:
+                        fileSize = fileSize / 1024
+                        sizeUnit = "GB"
+
                     print("fileInfo", fileInfo)
-                    files.append({"fileName": entry.name, "fileSize": round(fileSize, 3), "uploadDate": uploadDate})
+                    files.append({"fileName": entry.name,
+                                  "fileSize": str(round(fileSize, 3)) + " " + sizeUnit,
+                                  "uploadDate": uploadDate})
 
             return JsonResponse({'files': files})
 
