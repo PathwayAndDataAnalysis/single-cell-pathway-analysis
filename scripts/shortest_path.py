@@ -43,6 +43,33 @@ def get_shortest_path(mat, sourceInd, targetInd):
     return prev
 
 
+def get_shortest_path_multi_targ(mat, sourceInd, targetInds):
+    nCells = len(mat)
+    dist = [math.inf] * nCells
+    prev = [-1] * nCells
+
+    dist[sourceInd] = 0
+
+    que = [*range(0, nCells)]
+    targetInds = set(targetInds)
+
+    while len(targetInds) > 0:
+        u = get_min_elem(que, dist)
+
+        if u in targetInds:
+            targetInds.remove(u)
+
+        que.remove(u)
+
+        for v in que:
+            alt = dist[u] + mat[u][v]
+            if alt < dist[v]:
+                dist[v] = alt
+                prev[v] = u
+
+    return prev
+
+
 def get_path_as_indices(prev, source, target):
     path = [target]
     while path[0] != source:
@@ -200,3 +227,23 @@ def k_rank_svd(input_path: str, k: int, output_path: str):
 def transpose_table(input_path: str, output_path: str):
     dataF = pd.read_table(input_path, index_col=0)
     dataF.transpose().to_csv(output_path, sep="\t")
+
+
+def get_cell_closest_to_the_average_loc(input_file, subset):
+    dataF = pd.read_table(input_file, index_col=0)
+    mid = np.zeros(len(dataF))
+    for cell in subset:
+        mid += dataF[cell].to_numpy()
+    mid /= len(subset)
+
+    closest = None
+    min_dist = math.inf
+
+    for cell in subset:
+        vec = dataF[cell].to_numpy()
+        dist = distance.cosine(mid, vec)
+        if dist < min_dist:
+            min_dist = dist
+            closest = cell
+
+    return closest
