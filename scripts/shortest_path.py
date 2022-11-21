@@ -127,7 +127,8 @@ def get_cosine_distance_matrix(dataF):
         for j in range(i + 1, nCol):
             v2 = dataF.iloc[:, j].to_numpy()
             d = distance.cosine(v1, v2)
-            d = d * d
+
+            # d = d * d
             dist_mat[i][j] = d
             dist_mat[j][i] = d
 
@@ -152,6 +153,10 @@ def write_cosine_distance_matrix(input_file, output_file):
 
 def get_traj_and_time(dist_file: str, source_cell: str, target_cell: str):
     distF = pd.read_table(dist_file, index_col=0)
+    return get_traj_and_time_from_dataframe(distF)
+
+
+def get_traj_and_time_from_dataframe(distF, source_cell: str, target_cell: str):
     cols = distF.columns.values.tolist()
     dist_mat = distF.to_numpy()
     src_ind = cols.index(source_cell)
@@ -162,6 +167,15 @@ def get_traj_and_time(dist_file: str, source_cell: str, target_cell: str):
     time = get_pseudotime(path_as_ind, dist_mat)
     path_as_cells = get_path_as_cell_names(path_as_ind, cols)
     return path_as_cells, time
+
+
+def get_consecutive_distances(distF, traj):
+    indices = get_indices(distF.columns.values.tolist(), traj)
+    cons = []
+    mat = distF.to_numpy()
+    for i in range(len(traj) - 1):
+        cons.append(mat[indices[i], indices[i+1]])
+    return cons
 
 
 def get_indices(cells, traj):
