@@ -109,3 +109,33 @@ def run_analysis(request):
     else:
         print(request)
         return httpMethodError("GET", request.method)
+
+
+def get_coordinates(request):
+    if request.method == "POST":
+        try:
+            req_body = json.loads(request.body.decode('utf-8'))
+            print('req_body: ', req_body)
+
+            analysis_name = req_body['analysisName']
+
+            keys = ["Cell", "UMAP1", "UMAP2"]
+            data_to_return = []
+            with open("data/kisan@gmail.com/analysis/" + analysis_name + "/umap_coords.tsv", 'r') as f:
+                lines = f.readlines()[1:]
+                for line in lines:
+                    ll = [i.strip() for i in line.split('\t')]
+                    dd = {}
+                    for i, l in enumerate(ll):
+                        dd[keys[i]] = l
+                    data_to_return.append(dd)
+
+            return JsonResponse({'data': data_to_return}, status=200)
+
+        except Exception as e:
+            print(e)
+            return HttpResponse('Exception: ' + str(e), status=404)
+
+    else:
+        print(request)
+        return httpMethodError("POST", request.method)
