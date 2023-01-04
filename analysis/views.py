@@ -4,7 +4,9 @@ import shutil
 
 from django.http import JsonResponse, HttpResponse
 
+from analysis.models import Analysis
 from file_manage.views import httpMethodError, convert_date, safe_open_w
+from pipeline.views import runPipeline
 
 
 def get_all_analysis(request):
@@ -35,10 +37,15 @@ def get_all_analysis(request):
                         with open(param_file) as f:
                             params = json.load(f)
 
+                        # Get the status of the analysis
+                        status = Analysis.objects[0].isDone
+
                         files.append({"analysisName": entry.name,
                                       "analysisSize": str(round(fileSize, 3)) + " " + sizeUnit,
                                       "creationDate": creation_date,
-                                      "analysisParams": params
+                                      "analysisParams": params,
+
+                                      "status": status
                                       })
 
             return JsonResponse({'analysis': files})
@@ -115,8 +122,15 @@ def run_analysis(request):
             with safe_open_w(analysis_file) as f:
                 f.write(param_file_json)
 
+            # update database
+            analysis = Analysis()
+            # analysis.analysis_name = req_body['analysisName']
+            analysis.analysis_name = 'test'
+            analysis.isDone = False
+            analysis.save()
+
             # run pipeline
-            # runPipeline(request)
+            runPipeline(request)
 
             return HttpResponse(status=200)
 
@@ -161,6 +175,9 @@ def update_analysis(request):
                 param_file_json = json.dumps(new_param_file, indent=4)
                 with safe_open_w(new_path) as f:
                     f.write(param_file_json)
+
+            # run pipeline
+            runPipeline(request)
 
             return HttpResponse(status=200)
 
