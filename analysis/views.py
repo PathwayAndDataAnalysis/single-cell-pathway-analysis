@@ -5,6 +5,7 @@ import shutil
 from django.http import JsonResponse, HttpResponse
 
 from file_manage.views import httpMethodError, convert_date, safe_open_w
+from pipeline.views import runPipeline
 
 
 def get_all_analysis(request):
@@ -13,32 +14,33 @@ def get_all_analysis(request):
             files = []
             with os.scandir("data/kisan@gmail.com/analysis/") as entries:
                 for entry in entries:
-                    fileInfo = entry.stat()
-                    creation_date = convert_date(fileInfo.st_ctime)
+                    if entry.is_dir():
+                        fileInfo = entry.stat()
+                        creation_date = convert_date(fileInfo.st_ctime)
 
-                    sizeUnit = "KB"
-                    fileSize = fileInfo.st_size / 1024
+                        sizeUnit = "KB"
+                        fileSize = fileInfo.st_size / 1024
 
-                    if fileSize > 1024:
-                        fileSize = fileSize / 1024
-                        sizeUnit = "MB"
+                        if fileSize > 1024:
+                            fileSize = fileSize / 1024
+                            sizeUnit = "MB"
 
-                    if fileSize > 1024:
-                        fileSize = fileSize / 1024
-                        sizeUnit = "GB"
+                        if fileSize > 1024:
+                            fileSize = fileSize / 1024
+                            sizeUnit = "GB"
 
-                    print("fileInfo", fileInfo)
+                        print("fileInfo", fileInfo)
 
-                    # Open parameter file
-                    param_file = 'data/kisan@gmail.com/analysis/' + entry.name + "/" + "params.json"
-                    with open(param_file) as f:
-                        params = json.load(f)
+                        # Open parameter file
+                        param_file = 'data/kisan@gmail.com/analysis/' + entry.name + "/" + "params.json"
+                        with open(param_file) as f:
+                            params = json.load(f)
 
-                    files.append({"analysisName": entry.name,
-                                  "analysisSize": str(round(fileSize, 3)) + " " + sizeUnit,
-                                  "creationDate": creation_date,
-                                  "analysisParams": params
-                                  })
+                        files.append({"analysisName": entry.name,
+                                      "analysisSize": str(round(fileSize, 3)) + " " + sizeUnit,
+                                      "creationDate": creation_date,
+                                      "analysisParams": params
+                                      })
 
             return JsonResponse({'analysis': files})
 
@@ -99,6 +101,10 @@ def run_analysis(request):
             analysis_file = 'data/kisan@gmail.com/analysis/' + req_body['analysisName'] + '/params.json'
             with safe_open_w(analysis_file) as f:
                 f.write(param_file_json)
+
+
+            # run pipeline
+            runPipeline(request)
 
             return HttpResponse(status=200)
 

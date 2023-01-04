@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'auth_app',
     'file_manage',
     'analysis',
+    'pipeline',
 ]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000
@@ -108,12 +109,12 @@ WSGI_APPLICATION = 'SingleCellPathwayAnalysis.wsgi.application'
 
 mongoengine.connect(host="mongodb://127.0.0.1:27017/single-cell-pathway-analysis-db")
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 
 # Password validation
