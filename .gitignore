@@ -269,3 +269,8 @@ GitHub.sublime-settings
 .idea
 
 .DS_Store
+*.csv
+expression_matrix.tsv
+*.tsv
+s2fvb50_data
+*/cache

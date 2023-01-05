@@ -1,0 +1,105 @@
+---
+title: "single_cell_analysis"
+output: html_document
+date: "2023-01-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,warning=FALSE}
+library(Seurat)
+```
+
+```{r}
+# Load processed data
+s2 <- readRDS("./data/s2fvb50_data")
+```
+
+```{r}
+# Parameters used in previous analysis
+s2@commands$FindVariableFeatures.RNA
+#s2@commands$ScaleData.RNA
+#s2@commands$RunPCA.RNA
+s2@commands$FindNeighbors.RNA.pca
+s2@commands$FindClusters
+s2@commands$RunUMAP.RNA.pca
+```
+## Analysis of unprocessed data
+
+```{r}
+# Read raw expression matrix
+counts <- read.table("./data/expression_matrix.tsv",header = T)
+# Convert it into Seurat obj
+sc <- CreateSeuratObject(counts = counts, min.cells = 3, min.features = 200)
+```
+
+```{r}
+# Non-filtered Seurat obj contains 16337 genes and 4797 cells
+sc
+```
+```{r}
+# Calculate mitochondrial gene percentage
+sc[["percent.mt"]] <- PercentageFeatureSet(sc, pattern = "^MT-")
+
+```
+
+
+```{r}
+
+# Visualize QC metrics as a violin plot
+VlnPlot(sc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+
+```
+```{r}
+qc_pca <- function(seurat_obj){
+  # normalization.method = "LogNormalize", scale.factor = 10000
+  seurat_obj <- NormalizeData(seurat_obj)
+  seurat_obj <- FindVariableFeatures(seurat_obj, selection.method = "vst", nfeatures = 2000)
+  seurat_obj <- ScaleData(seurat_obj)
+  seurat_obj <- RunPCA(seurat_obj)
+  return(seurat_obj)
+}
+
+```
+
+```{r}
+sc_processed <- qc_pca(sc)
+
+```
+```{r}
+DimPlot(sc_processed, reduction = "pca")
+```
+```{r}
+ElbowPlot(sc_processed,ndims = 50)
+```
+```{r}
+cluster_and_umap <- function(seurat_obj,dimension){
+  # Computing nearest neighbor graph & Computing SNN
+  seurat_obj <- FindNeighbors(seurat_obj, dims = 1:dimension)
+  seurat_obj <- FindClusters(seurat_obj)
+  seurat_obj <- RunUMAP(seurat_obj, dims = 1:dimension)
+  return(seurat_obj)
+}
+```
+
+## Compare the results of different dimensionality of dataset for the FindNeighbors() function
+### First 10 PCs
+
+
+```{r}
+sc_neighbors <- cluster_and_umap(sc_processed,10)
+DimPlot(sc_neighbors, reduction = "umap",label = T)
+```
+### First 20 PCs
+```{r}
+sc_neighbors20 <- cluster_and_umap(sc_processed,20)
+DimPlot(sc_neighbors20, reduction = "umap",label = T)
+```
+
+
+
+
+
+
