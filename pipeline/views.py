@@ -33,49 +33,25 @@ def pcaRunningTask(id):
     print("Starting PCA Process id", id)
 
     # Do Filtering
-    time.sleep(5)
+    time.sleep(10)
+    # a = Analysis.objects(analysisName="test")
+    # Analysis.objects(analysisName="test").update(isFilteringDone=True)
     print("Filtering Done")
-    # Update Database
-
 
     # Do PCA
-    time.sleep(5)
+    time.sleep(10)
+    # Analysis.objects(analysisName="test").update(isPCADone=True)
     print("PCA Done")
 
-    # Update Database
-
     # Do UMAP
-    time.sleep(5)
+    time.sleep(10)
+    # Analysis.objects(analysisName="test").update(isUMAPDone=True)
     print("UMAP Done")
+
     # Update Database
-    analysis = Analysis.objects(analysis_name="test").update(upsert=True, set__isDone=True)
-    # analysis.is_everything_done = True
-    # analysis.save()
+    Analysis.objects(analysisName="test").update(isDone=True)
 
     pca_task = ThreadTask.objects.get(pk=id)
     pca_task.is_done = True
     pca_task.save()
     print("Finished PCA Process id", id)
-
-# UMAP Pipeline
-# def runUMAP(request):
-#     print("Starting UMAP Process")
-#     umap_task = ThreadTask.objects.create(task_name="umap_process")
-#     umap_task.save()
-#     umap_thread = threading.Thread(target=umapRunningTask, args=[umap_task.id], daemon=True)
-#     umap_thread.start()
-#     return JsonResponse({'id': umap_task.id})
-#
-#
-# def checkUMAP(request, id):
-#     umap_task = ThreadTask.objects.get(pk=id)
-#     return JsonResponse({'is_done': umap_task.is_done})
-#
-#
-# def umapRunningTask(id):
-#     print("Starting UMAP Process id", id)
-#     time.sleep(10)
-#     umap_task = ThreadTask.objects.get(pk=id)
-#     umap_task.is_done = True
-#     umap_task.save()
-#     print("Finished UMAP Process id", id)

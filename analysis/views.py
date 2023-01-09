@@ -30,7 +30,7 @@ def get_all_analysis(request):
                             fileSize = fileSize / 1024
                             sizeUnit = "GB"
 
-                        print("fileInfo", fileInfo)
+                        # print("fileInfo", fileInfo)
 
                         # Open parameter file
                         param_file = 'data/kisan@gmail.com/analysis/' + entry.name + "/" + "params.json"
@@ -38,7 +38,8 @@ def get_all_analysis(request):
                             params = json.load(f)
 
                         # Get the status of the analysis
-                        status = Analysis.objects[0].isDone
+                        # status = Analysis.objects[0].isDone
+                        status = False
 
                         files.append({"analysisName": entry.name,
                                       "analysisSize": str(round(fileSize, 3)) + " " + sizeUnit,
@@ -79,17 +80,31 @@ def create_param_file(req_body):
     param_file = {
         "analysisName": req_body['analysisName'],
         "dataMatrixFile": req_body['dataMatrixFile'],
+        "organism": req_body['organism'],
         "metaDataFile": req_body['metaDataFile'],
-        "useFiltering": req_body['useFiltering'],
+
+        "isFilterCells": req_body['isFilterCells'],
+        "isFilterGenes": req_body['isFilterGenes'],
+        "isQCFilter": req_body['isQCFilter'],
+        "isNormalizeData": req_body['isNormalizeData'],
+        "isUseLogTransform": req_body['isUseLogTransform'],
+
         "usePCA": req_body['usePCA'],
         "useUMAP": req_body['useUMAP'],
         "normalizationScale": req_body['normalizationScale'],
     }
 
-    if req_body['useFiltering']:
+    if req_body['isFilterCells']:
         param_file['minNumOfCells'] = req_body['minNumOfCells']
+
+    if req_body['isFilterGenes']:
         param_file['minNumOfGenes'] = req_body['minNumOfGenes']
-        param_file['qcFilterPerc'] = req_body['qcFilterPerc']
+
+    if req_body['isQCFilter']:
+        param_file['qcFilterPercent'] = req_body['qcFilterPercent']
+
+    if req_body['isNormalizeData']:
+        param_file['normalizationScale'] = req_body['normalizationScale']
 
     if req_body['usePCA']:
         param_file['pcaCount'] = req_body['pcaCount']
@@ -125,7 +140,10 @@ def run_analysis(request):
             # update database
             analysis = Analysis()
             # analysis.analysis_name = req_body['analysisName']
-            analysis.analysis_name = 'test'
+            analysis.analysisName = 'test'
+            analysis.isFilteringDone = False
+            analysis.isPCADone = False
+            analysis.isUMAPDone = False
             analysis.isDone = False
             analysis.save()
 
@@ -175,6 +193,16 @@ def update_analysis(request):
                 param_file_json = json.dumps(new_param_file, indent=4)
                 with safe_open_w(new_path) as f:
                     f.write(param_file_json)
+
+            # update database
+            analysis = Analysis()
+            # analysis.analysis_name = req_body['analysisName']
+            analysis.analysisName = 'test'
+            analysis.isFilteringDone = False
+            analysis.isPCADone = False
+            analysis.isUMAPDone = False
+            analysis.isDone = False
+            analysis.save()
 
             # run pipeline
             runPipeline(request)
