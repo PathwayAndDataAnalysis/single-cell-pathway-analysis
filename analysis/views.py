@@ -30,23 +30,26 @@ def get_all_analysis(request):
                             fileSize = fileSize / 1024
                             sizeUnit = "GB"
 
-                        # print("fileInfo", fileInfo)
-
                         # Open parameter file
                         param_file = 'data/kisan@gmail.com/analysis/' + entry.name + "/" + "params.json"
                         with open(param_file) as f:
                             params = json.load(f)
 
                         # Get the status of the analysis
-                        # status = Analysis.objects[0].isDone
-                        status = False
+                        filteringStatus = Analysis.objects(analysisName=params['analysisName']).first().isFilteringDone
+                        pcaStatus = Analysis.objects(analysisName=params['analysisName']).first().isPCADone
+                        umapStatus = Analysis.objects(analysisName=params['analysisName']).first().isUMAPDone
+                        allStatus = Analysis.objects(analysisName=params['analysisName']).first().isAllDone
 
                         files.append({"analysisName": entry.name,
                                       "analysisSize": str(round(fileSize, 3)) + " " + sizeUnit,
                                       "creationDate": creation_date,
                                       "analysisParams": params,
 
-                                      "status": status
+                                      "filteringStatus": filteringStatus,
+                                      "pcaStatus": pcaStatus,
+                                      "umapStatus": umapStatus,
+                                      "allStatus": allStatus,
                                       })
 
             return JsonResponse({'analysis': files})
@@ -64,8 +67,12 @@ def delete_analysis(request):
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
+            print('req_body', req_body)
             file_to_delete = "data/kisan@gmail.com/analysis/" + req_body['analysis']
             shutil.rmtree(file_to_delete, ignore_errors=True, )
+
+            # delete from database
+            Analysis.objects(analysisName=req_body['analysis']).delete()
 
             return HttpResponse("Success", status=200)
         except Exception as e:
@@ -139,16 +146,25 @@ def run_analysis(request):
 
             # update database
             analysis = Analysis()
-            # analysis.analysis_name = req_body['analysisName']
-            analysis.analysisName = 'test'
+            analysis.analysisName = new_param_file['analysisName']
             analysis.isFilteringDone = False
             analysis.isPCADone = False
             analysis.isUMAPDone = False
-            analysis.isDone = False
+            analysis.isAllDone = False
             analysis.save()
 
             # run pipeline
-            runPipeline(request)
+            file_path = 'data/kisan@gmail.com/files' + '/'
+            analysis_path = 'data/kisan@gmail.com/analysis/' + req_body['analysisName'] + '/'
+            new_param_file['exp_path'] = file_path + new_param_file['dataMatrixFile']
+            new_param_file['out_path'] = analysis_path + "_filtered.tsv"
+
+            new_param_file['pca_exp_path'] = analysis_path + "_filtered.tsv"
+            new_param_file['pca_out_path'] = analysis_path + "_pca.tsv"
+
+            new_param_file['umap_exp_path'] = analysis_path + "_pca.tsv"
+            new_param_file['umap_out_path'] = analysis_path + "_umap.tsv"
+            runPipeline(new_param_file)
 
             return HttpResponse(status=200)
 
@@ -195,17 +211,16 @@ def update_analysis(request):
                     f.write(param_file_json)
 
             # update database
-            analysis = Analysis()
-            # analysis.analysis_name = req_body['analysisName']
-            analysis.analysisName = 'test'
-            analysis.isFilteringDone = False
-            analysis.isPCADone = False
-            analysis.isUMAPDone = False
-            analysis.isDone = False
-            analysis.save()
+            # analysis = Analysis()
+            # analysis.analysisName = new_param_file['analysisName']
+            # analysis.isFilteringDone = False
+            # analysis.isPCADone = False
+            # analysis.isUMAPDone = False
+            # analysis.isAllDone = False
+            # analysis.save()
 
             # run pipeline
-            runPipeline(request)
+            # runPipeline(request)
 
             return HttpResponse(status=200)
 
@@ -222,13 +237,13 @@ def get_coordinates(request):
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
-            print('req_body: ', req_body)
+            print('req_body', req_body)
 
             analysis_name = req_body['analysisName']
 
             keys = ["Cell", "UMAP1", "UMAP2"]
             data_to_return = []
-            with open("data/kisan@gmail.com/analysis/" + analysis_name + "/umap_coords.tsv", 'r') as f:
+            with open("data/kisan@gmail.com/analysis/" + analysis_name + "/_umap.tsv", 'r') as f:
                 lines = f.readlines()[1:]
                 for line in lines:
                     ll = [i.strip() for i in line.split('\t')]

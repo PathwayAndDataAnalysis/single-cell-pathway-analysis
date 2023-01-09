@@ -7,10 +7,10 @@ from mongoengine import StringField, Document, BooleanField
 
 class Analysis(Document):
     analysisName = StringField(required=True)
-    isFilteringDone = models.BooleanField(default=False)
-    isPCADone = models.BooleanField(default=False)
-    isUMAPDone = models.BooleanField(default=False)
-    isDone = BooleanField(default=False)
+    isFilteringDone = BooleanField(default=False)
+    isPCADone = BooleanField(default=False)
+    isUMAPDone = BooleanField(default=False)
+    isAllDone = BooleanField(default=False)
 
     def __str__(self):
         return self.analysisName
