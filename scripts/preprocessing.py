@@ -53,7 +53,7 @@ def filter_and_normalize(species: str, apply_min_cells: bool, apply_min_genes: b
         sc.pp.log1p(adata)
 
     # Write the processed expression matrix
-    pd.DataFrame(data=adata.X, index=adata.obs_names, columns=adata.var_names).to_csv(out_path)
+    pd.DataFrame(data=adata.X, index=adata.obs_names, columns=adata.var_names).T.to_csv(out_path, sep="\t")
 
 
 def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
@@ -65,7 +65,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
     @param out_path:
     @param n_pcs:
     """
-    adata = sc.read(norm_exp_path).T
+    adata = sc.read(norm_exp_path)
 
     # Find highly variable genes and subtract them
     sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
@@ -77,7 +77,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).to_csv(out_path)
+    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
