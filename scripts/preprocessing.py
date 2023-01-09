@@ -77,7 +77,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
+    pd.DataFrame(data=pc_table).T.to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
