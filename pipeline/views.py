@@ -82,7 +82,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
+    pd.DataFrame(data=pc_table).T.to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
@@ -97,6 +97,7 @@ def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_d
     @param min_dist:
     @param n_neighbors:
     """
+    print("Starting UMAP Process", input_path, output_path, metric, min_dist, n_neighbors)
     # Read the file containing k PCA components
     input_data = pd.read_table(input_path, index_col=0)
     # transpose is needed because pca output is transposed
@@ -180,16 +181,3 @@ def processRunningTask(id, analysis_info):
     task.is_done = True
     task.save()
     print("Everything done, Process id", id)
-
-
-{'analysisName': 'Test Analysis 1', 'dataMatrixFile': 'br2_counts.tsv', 'organism': 'Mouse',
- 'metaDataFile': 'test-data.tsv', 'isFilterCells': True, 'isFilterGenes': True, 'isQCFilter': True,
- 'isNormalizeData': True, 'isUseLogTransform': True, 'usePCA': True, 'useUMAP': True, 'normalizationScale': 10000,
- 'minNumOfCells': '500', 'minNumOfGenes': '400', 'qcFilterPercent': 10, 'pcaCount': '14', 'n_neighbors': '13',
- 'min_dist': '0.1', 'metric': 'euclidean', 'exp_path': 'data/kisan@gmail.com/files/br2_counts.tsv',
- 'out_path': 'data/kisan@gmail.com/analysis/Test Analysis 1/_filtered.tsv',
- 'pca_exp_path': 'data/kisan@gmail.com/analysis/Test Analysis 1/_filtered.tsv',
- 'pca_out_path': 'data/kisan@gmail.com/analysis/Test Analysis 1/_pca.tsv',
- 'umap_exp_path': 'data/kisan@gmail.com/analysis/Test Analysis 1/_pca.tsv',
- 'umap_out_path': 'data/kisan@gmail.com/analysis/Test Analysis 1/_umap.tsv'
- }

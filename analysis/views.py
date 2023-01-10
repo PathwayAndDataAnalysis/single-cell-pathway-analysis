@@ -211,16 +211,26 @@ def update_analysis(request):
                     f.write(param_file_json)
 
             # update database
-            # analysis = Analysis()
-            # analysis.analysisName = new_param_file['analysisName']
-            # analysis.isFilteringDone = False
-            # analysis.isPCADone = False
-            # analysis.isUMAPDone = False
-            # analysis.isAllDone = False
-            # analysis.save()
+            analysis = Analysis()
+            analysis.analysisName = new_param_file['analysisName']
+            analysis.isFilteringDone = False
+            analysis.isPCADone = False
+            analysis.isUMAPDone = False
+            analysis.isAllDone = False
+            analysis.save()
 
             # run pipeline
-            # runPipeline(request)
+            file_path = 'data/kisan@gmail.com/files' + '/'
+            analysis_path = 'data/kisan@gmail.com/analysis/' + req_body['analysisName'] + '/'
+            new_param_file['exp_path'] = file_path + new_param_file['dataMatrixFile']
+            new_param_file['out_path'] = analysis_path + "_filtered.tsv"
+
+            new_param_file['pca_exp_path'] = analysis_path + "_filtered.tsv"
+            new_param_file['pca_out_path'] = analysis_path + "_pca.tsv"
+
+            new_param_file['umap_exp_path'] = analysis_path + "_pca.tsv"
+            new_param_file['umap_out_path'] = analysis_path + "_umap.tsv"
+            runPipeline(new_param_file)
 
             return HttpResponse(status=200)
 
