@@ -100,7 +100,7 @@ def run_umap_original(input_path: str, output_path: str, metric: str = 'euclidea
     input_t = input_data
 
     # Run UMAP
-    reducer = umap.UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors)
+    reducer = umap.UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors, random_state=0)
     embedding = reducer.fit_transform(input_t)
 
     # Write the output of UMAP as a file
