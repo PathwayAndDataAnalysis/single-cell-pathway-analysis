@@ -2,6 +2,7 @@ import pandas as pd
 import scanpy as sc
 import umap
 from pandas import DataFrame
+import numpy as np
 
 
 def filter_and_normalize(species: str, apply_min_cells: bool, apply_min_genes: bool, apply_mt_filter: bool,
@@ -65,7 +66,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
     @param out_path:
     @param n_pcs:
     """
-    adata = sc.read(norm_exp_path)
+    adata = sc.read(norm_exp_path).T
 
     # Find highly variable genes and subtract them
     sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
@@ -77,11 +78,11 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).T.to_csv(out_path, sep="\t")
+    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
-def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
+def run_umap_original(input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
              n_neighbors: int = 15) -> None:
     """
     This function gets PCA components as an input file and find distances using those components.
@@ -96,7 +97,7 @@ def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_d
     # Read the file containing k PCA components
     input_data = pd.read_table(input_path, index_col=0)
     # transpose is needed because pca output is transposed
-    input_t = input_data.T
+    input_t = input_data
 
     # Run UMAP
     reducer = umap.UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors)
@@ -105,3 +106,7 @@ def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_d
     # Write the output of UMAP as a file
     umap_df: DataFrame = pd.DataFrame(data=embedding, columns=['umap comp. 1', 'umap comp. 2'])
     umap_df.to_csv(output_path, sep="\t")
+
+
+
+
