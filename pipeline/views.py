@@ -1,11 +1,10 @@
 import threading
-import time
-import pandas as pd
-import umap
-from pandas import DataFrame
-import scanpy as sc
 
+import pandas as pd
+import scanpy as sc
+import umap
 from django.http import JsonResponse
+from pandas import DataFrame
 
 from analysis.models import Analysis
 from pipeline.models import ThreadTask
@@ -70,7 +69,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
     @param out_path:
     @param n_pcs:
     """
-    adata = sc.read(norm_exp_path)
+    adata = sc.read(norm_exp_path).T
 
     # Find highly variable genes and subtract them
     sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
@@ -82,7 +81,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).T.to_csv(out_path, sep="\t")
+    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
@@ -97,14 +96,13 @@ def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_d
     @param min_dist:
     @param n_neighbors:
     """
-    print("Starting UMAP Process", input_path, output_path, metric, min_dist, n_neighbors)
     # Read the file containing k PCA components
     input_data = pd.read_table(input_path, index_col=0)
     # transpose is needed because pca output is transposed
-    input_t = input_data.T
+    input_t = input_data
 
     # Run UMAP
-    reducer = umap.UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors)
+    reducer = umap.UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors, random_state=0)
     embedding = reducer.fit_transform(input_t)
 
     # Write the output of UMAP as a file
