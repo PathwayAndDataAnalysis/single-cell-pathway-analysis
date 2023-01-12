@@ -78,6 +78,34 @@ def get_path_as_indices(prev, source, target):
     return path
 
 
+def get_paths_as_indices(prev, source, target_list):
+    trajs = []
+
+    for target in target_list:
+        trajs.append(get_path_as_indices(prev, source, target))
+
+    return trajs
+
+
+def get_cell_density_of_trajs(trajs):
+    freqs = {}
+
+    for traj in trajs:
+        for i in range(1, len(traj)-1):  # leave out endpoints
+            cell = traj[i]
+            if cell in freqs:
+                freqs[cell] = freqs[cell] + 1
+            else:
+                freqs[cell] = 1
+
+#    maximum = max(freqs.values())
+    density = {}
+    for key, value in freqs.items():
+        density[key] = value / len(trajs)
+
+    return density
+
+
 def get_path_as_cell_names(path_as_ind, cells):
     path = []
     for i in path_as_ind:
@@ -167,6 +195,25 @@ def get_traj_and_time_from_dataframe(distF, source_cell: str, target_cell: str):
     time = get_pseudotime(path_as_ind, dist_mat)
     path_as_cells = get_path_as_cell_names(path_as_ind, cols)
     return path_as_cells, time
+
+
+def get_trajs_from_dataframe(distF, source_cells, target_cells):
+    cols = distF.columns.values.tolist()
+    dist_mat = distF.to_numpy()
+    src_inds = get_indices(cols, source_cells)
+    trg_inds = get_indices(cols, target_cells)
+
+    trajs = []
+
+    for s_ind in src_inds:
+        prev = get_shortest_path_multi_targ(dist_mat, s_ind, trg_inds)
+        paths = get_paths_as_indices(prev, s_ind, trg_inds)
+
+        for path in paths:
+            traj = get_path_as_cell_names(path, cols)
+            trajs.append(traj)
+
+    return trajs
 
 
 def get_consecutive_distances(distF, traj):
