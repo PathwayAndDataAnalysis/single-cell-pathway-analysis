@@ -157,6 +157,7 @@ def run_analysis(request):
             file_path = 'data/kisan@gmail.com/files' + '/'
             analysis_path = 'data/kisan@gmail.com/analysis/' + req_body['analysisName'] + '/'
             new_param_file['exp_path'] = file_path + new_param_file['dataMatrixFile']
+            new_param_file['metadata_path'] = file_path + new_param_file['metaDataFile']
             new_param_file['out_path'] = analysis_path + "_filtered.tsv"
 
             new_param_file['pca_exp_path'] = analysis_path + "_filtered.tsv"
@@ -164,6 +165,8 @@ def run_analysis(request):
 
             new_param_file['umap_exp_path'] = analysis_path + "_pca.tsv"
             new_param_file['umap_out_path'] = analysis_path + "_umap.tsv"
+
+            new_param_file['umap_clustered_path'] = analysis_path + "_umap_clustered.tsv"
             runPipeline(new_param_file)
 
             return HttpResponse(status=200)
@@ -251,9 +254,9 @@ def get_coordinates(request):
 
             analysis_name = req_body['analysisName']
 
-            keys = ["Cell", "UMAP1", "UMAP2"]
+            keys = ["Cell", "UMAP1", "UMAP2", "ClusterID"]
             data_to_return = []
-            with open("data/kisan@gmail.com/analysis/" + analysis_name + "/_umap.tsv", 'r') as f:
+            with open("data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv", 'r') as f:
                 lines = f.readlines()[1:]
                 for line in lines:
                     ll = [i.strip() for i in line.split('\t')]
@@ -261,7 +264,6 @@ def get_coordinates(request):
                     for i, l in enumerate(ll):
                         dd[keys[i]] = l
                     data_to_return.append(dd)
-
             return JsonResponse({'data': data_to_return}, status=200)
 
         except Exception as e:

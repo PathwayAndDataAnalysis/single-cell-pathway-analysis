@@ -81,21 +81,23 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
+    pd.DataFrame(data=pc_table, index=adata.obs_names).to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
-def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
+def run_umap(norm_exp_path: str, input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
              n_neighbors: int = 15) -> None:
     """
     This function gets PCA components as an input file and find distances using those components.
     It outputs file containing 2D locations using UMAP function.
+    @param norm_exp_path:
     @param input_path:
     @param output_path:
     @param metric:
     @param min_dist:
     @param n_neighbors:
     """
+    adata = sc.read(norm_exp_path).T
     # Read the file containing k PCA components
     input_data = pd.read_table(input_path, index_col=0)
     # transpose is needed because pca output is transposed
@@ -106,8 +108,30 @@ def run_umap(input_path: str, output_path: str, metric: str = 'euclidean', min_d
     embedding = reducer.fit_transform(input_t)
 
     # Write the output of UMAP as a file
-    umap_df: DataFrame = pd.DataFrame(data=embedding, columns=['umap comp. 1', 'umap comp. 2'])
+    umap_df: DataFrame = pd.DataFrame(data=embedding, index=adata.obs_names, columns=['umap comp. 1', 'umap comp. 2'])
     umap_df.to_csv(output_path, sep="\t")
+
+
+# Add Clustering
+def addClustering(metadata_path, umap_path, out_path):
+    # Read and manage metadata
+    metadata = pd.read_csv(metadata_path, sep='\t')
+    hd = list(metadata.columns)
+    hd[0] = 'cell_id'
+    metadata.columns = hd
+    # replace - with .
+    metadata['cell_id'] = metadata['cell_id'].str.replace('-', '.')
+
+    # Read and manage umap
+    coord = pd.read_csv(umap_path, sep='\t')
+    hd = list(coord.columns)
+    hd[0] = 'cell_id'
+    coord.columns = hd
+
+    # merge metadata and umap
+    result = coord.merge(metadata, how='left', on='cell_id').drop_duplicates()
+    result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', 'seurat_clusters']]
+    result.to_csv(out_path, sep='\t', index=False)
 
 
 # Create your views here.
@@ -163,6 +187,7 @@ def processRunningTask(id, analysis_info):
 
     # Do UMAP
     run_umap(
+        norm_exp_path=analysis_info['pca_exp_path'],
         input_path=analysis_info['umap_exp_path'],
         output_path=analysis_info['umap_out_path'],
         metric=analysis_info['metric'],
@@ -171,6 +196,13 @@ def processRunningTask(id, analysis_info):
     )
     Analysis.objects(analysisName=analysis_info['analysisName']).update(isUMAPDone=True)
     print("UMAP Done")
+
+    # Do Clustering
+    addClustering(
+        metadata_path=analysis_info['metadata_path'],
+        umap_path=analysis_info['umap_out_path'],
+        out_path=analysis_info['umap_clustered_path'],
+    )
 
     # Update Database
     Analysis.objects(analysisName=analysis_info['analysisName']).update(isAllDone=True)
