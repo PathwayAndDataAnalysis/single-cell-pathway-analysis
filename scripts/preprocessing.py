@@ -78,22 +78,25 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
 
     # Write the k PCA components in to a file
     pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table).to_csv(out_path, sep="\t")
+    pd.DataFrame(data=pc_table,index=adata.obs_names).to_csv(out_path, sep="\t")
 
 
 # input path should be the output of sc_PCA function
-def run_umap_original(input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
+def run_umap_original(norm_exp_path: str, input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
              n_neighbors: int = 15) -> None:
     """
     This function gets PCA components as an input file and find distances using those components.
     It outputs file containing 2D locations using UMAP function.
 
+    @type norm_exp_path: object
+    @param norm_exp_path:
     @param input_path:
     @param output_path:
     @param metric:
     @param min_dist:
     @param n_neighbors:
     """
+    adata = sc.read(norm_exp_path).T
     # Read the file containing k PCA components
     input_data = pd.read_table(input_path, index_col=0)
     # transpose is needed because pca output is transposed
@@ -104,7 +107,7 @@ def run_umap_original(input_path: str, output_path: str, metric: str = 'euclidea
     embedding = reducer.fit_transform(input_t)
 
     # Write the output of UMAP as a file
-    umap_df: DataFrame = pd.DataFrame(data=embedding, columns=['umap comp. 1', 'umap comp. 2'])
+    umap_df: DataFrame = pd.DataFrame(data=embedding, index=adata.obs_names, columns=['umap comp. 1', 'umap comp. 2'])
     umap_df.to_csv(output_path, sep="\t")
 
 
