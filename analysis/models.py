@@ -1,9 +1,6 @@
-from django.db import models
 from mongoengine import StringField, Document, BooleanField
 
-
 # Create your models here.
-
 
 class Analysis(Document):
     analysisName = StringField(required=True)
