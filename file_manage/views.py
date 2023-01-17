@@ -57,7 +57,6 @@ def get_all_files(request):
             files = []
             with os.scandir("data/kisan@gmail.com/files/") as entries:
                 for entry in entries:
-                    print(entry)
                     fileInfo = entry.stat()
                     uploadDate = convert_date(fileInfo.st_ctime)
 

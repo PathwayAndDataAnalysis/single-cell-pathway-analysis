@@ -128,6 +128,18 @@ def create_param_file(req_body):
     return param_file
 
 
+def update_database(analysis_name: str, is_filtering_done: bool = False, is_pca_done: bool = False,
+                    is_umap_done: bool = False, is_all_done: bool = False):
+    # Create a new entry in the database
+    analysis = Analysis()
+    analysis.analysisName = analysis_name
+    analysis.isFilteringDone = is_filtering_done
+    analysis.isPCADone = is_pca_done
+    analysis.isUMAPDone = is_umap_done
+    analysis.isAllDone = is_all_done
+    analysis.save()
+
+
 def run_analysis(request):
     if request.method == "POST":
         try:
@@ -145,13 +157,7 @@ def run_analysis(request):
                 f.write(param_file_json)
 
             # update database
-            analysis = Analysis()
-            analysis.analysisName = new_param_file['analysisName']
-            analysis.isFilteringDone = False
-            analysis.isPCADone = False
-            analysis.isUMAPDone = False
-            analysis.isAllDone = False
-            analysis.save()
+            update_database(req_body['analysisName'])
 
             # run pipeline
             file_path = 'data/kisan@gmail.com/files' + '/'
@@ -214,13 +220,7 @@ def update_analysis(request):
                     f.write(param_file_json)
 
             # update database
-            analysis = Analysis()
-            analysis.analysisName = new_param_file['analysisName']
-            analysis.isFilteringDone = False
-            analysis.isPCADone = False
-            analysis.isUMAPDone = False
-            analysis.isAllDone = False
-            analysis.save()
+            update_database(new_param_file['analysisName'])
 
             # run pipeline
             file_path = 'data/kisan@gmail.com/files' + '/'
