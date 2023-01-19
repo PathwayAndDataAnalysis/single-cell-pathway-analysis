@@ -7,5 +7,7 @@ urlpatterns = [
     path('run/', views.run_analysis, name='run_analysis'),
     path('update/', views.update_analysis, name='update_analysis'),
     path('delete/', views.delete_analysis, name='delete_analysis'),
-    path('get_coordinates/', views.get_coordinates, name='get_coordinates')
+    path('get_coordinates/', views.get_coordinates, name='get_coordinates'),
+    path('get_metadata_columns/', views.get_metadata_columns, name='get_metadata_columns'),
+    path('get_data_with_metadata_columns/', views.get_data_with_metadata_columns, name='get_data_with_metadata_columns')
 ]

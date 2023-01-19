@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-
+import pandas as pd
 from django.http import JsonResponse, HttpResponse
 
 from SingleCellPathwayAnalysis.views import httpMethodError, exceptionInRequest
@@ -294,7 +294,8 @@ def get_coordinates(request):
 
             keys = ["Cell", "UMAP1", "UMAP2", "ClusterID"]
             data_to_return = []
-            with open("data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv", 'r') as f:
+            coordinate_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+            with open(coordinate_file, 'r') as f:
                 lines = f.readlines()[1:]
                 for line in lines:
                     ll = [i.strip() for i in line.split('\t')]
@@ -307,5 +308,92 @@ def get_coordinates(request):
         except Exception as e:
             return exceptionInRequest(e)
 
+    else:
+        return httpMethodError("POST", request.method)
+
+
+def get_metadata_columns(request):
+    """
+    Get the metadata columns
+    @param request:
+    @return:
+    """
+    if request.method == "POST":
+        try:
+            req_body = json.loads(request.body.decode('utf-8'))
+            analysis_name = req_body['analysisName']
+
+            meta_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/params.json"
+            with open(meta_file, 'r') as f:
+                meta_data = json.load(f)
+                meta_file = meta_data['metaDataFile']
+
+                mt = pd.read_csv("data/kisan@gmail.com/files/" + meta_file, sep='\t')
+                cols = list(mt.columns)[1:]
+                return JsonResponse({'data': cols}, status=200)
+
+        except Exception as e:
+            return exceptionInRequest(e)
+    else:
+        return httpMethodError("POST", request.method)
+
+
+def get_data_with_metadata_columns(request):
+    """
+    Get the data with metadata columns
+    @param request:
+    @return:
+    """
+    if request.method == "POST":
+        try:
+            req_body = json.loads(request.body.decode('utf-8'))
+
+            analysis_name = req_body['analysisName']
+            column_name = req_body['columnName']
+
+            param_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/params.json"
+            umap_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap.tsv"
+            out_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+
+            with open(param_file, 'r') as f:
+                meta_data = json.load(f)
+                meta_file = meta_data['metaDataFile']
+
+                # Read and manage metadata file
+                mt = pd.read_csv("data/kisan@gmail.com/files/" + meta_file, sep='\t')
+                hd = list(mt.columns)
+                hd[0] = 'cell_id'
+                mt.columns = hd
+                # replace - with .
+                mt['cell_id'] = mt['cell_id'].str.replace('-', '.')
+
+                # Read and manage umap
+                coord = pd.read_csv(umap_path, sep='\t')
+                hd = list(coord.columns)
+                hd[0] = 'cell_id'
+                coord.columns = hd
+
+                # merge metadata and umap
+                result = coord.merge(mt, how='left', on='cell_id').drop_duplicates()
+                result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', column_name]]
+                result.to_csv(out_path, sep='\t', index=False)
+
+                # Response data
+                # keys = ["Cell", "UMAP1", "UMAP2", "ClusterID"]
+                # data_to_return = []
+                # coordinate_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+                # with open(coordinate_file, 'r') as f:
+                #     lines = f.readlines()[1:]
+                #     for line in lines:
+                #         ll = [i.strip() for i in line.split('\t')]
+                #         dd = {}
+                #         for i, l in enumerate(ll):
+                #             dd[keys[i]] = l
+                #         data_to_return.append(dd)
+                #
+                return JsonResponse({'data': "success"}, status=200)
+
+        except Exception as e:
+            return exceptionInRequest(e)
     else:
         return httpMethodError("POST", request.method)

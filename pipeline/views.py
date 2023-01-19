@@ -115,7 +115,7 @@ def run_umap(norm_exp_path: str, input_path: str, output_path: str, metric: str 
 
 # Add Clustering
 def addClustering(metadata_path, umap_path, out_path):
-    # Read and manage metadata
+    # Read and manage metadata file
     metadata = pd.read_csv(metadata_path, sep='\t')
     hd = list(metadata.columns)
     hd[0] = 'cell_id'
