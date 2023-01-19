@@ -6,14 +6,14 @@ import umap
 from django.http import JsonResponse
 from pandas import DataFrame
 
-from analysis.models import Analysis
+from analysis.models import Analysis, TASK_STATUS
 from pipeline.models import ThreadTask
 
 
 def filter_and_normalize(species: str, apply_min_cells: bool, apply_min_genes: bool, apply_mt_filter: bool,
                          apply_normalization: bool, apply_log: bool, exp_path: str, out_path: str,
                          min_genes: int = 200, min_cells: int = 10, target_sum: int = 1e4,
-                         percent_mt: float = 10) -> None:
+                         percent_mt: float = 10):
     """
     This function applies several preprocessing steps on the expression matrix. According to user preferences it can
     filter genes by minimum number of expression in cells, filter cells by minimum number of genes, filter cells by
@@ -69,6 +69,7 @@ def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
     @param out_path:
     @param n_pcs:
     """
+
     adata = sc.read(norm_exp_path).T
 
     # Find highly variable genes and subtract them
@@ -154,58 +155,100 @@ def checkTaskThread(request, id):
     return JsonResponse({'is_done': task.is_done})
 
 
+def killTaskThread(id):
+    task = ThreadTask.objects.get(pk=id)
+    task.is_done = True
+    task.save()
+    return JsonResponse({'is_done': task.is_done})
+
+
 def processRunningTask(id, analysis_info):
     print("Starting PCA Process id", id)
+    print('analysis_info', analysis_info)
+
+    current_ana = Analysis.objects(analysisName=analysis_info['analysisName'])
+    current_ana.update(isAllDone=TASK_STATUS.RUNNING.value)
 
     # Do Filtering
-    print('analysis_info', analysis_info)
-    filter_and_normalize(
-        species=analysis_info['organism'],
-        apply_min_cells=analysis_info['isFilterCells'],
-        apply_min_genes=analysis_info['isFilterGenes'],
-        apply_mt_filter=analysis_info['isQCFilter'],
-        apply_normalization=analysis_info['isNormalizeData'],
-        apply_log=analysis_info['isUseLogTransform'],
-        exp_path=analysis_info['exp_path'],
-        out_path=analysis_info['out_path'],
-        min_genes=int(analysis_info['minNumOfGenes']),
-        min_cells=int(analysis_info['minNumOfCells']),
-        target_sum=int(analysis_info['normalizationScale']),
-        percent_mt=float(analysis_info['qcFilterPercent']),
-    )
-    Analysis.objects(analysisName=analysis_info['analysisName']).update(isFilteringDone=True)
-    print("Filtering Done")
+    try:
+        Analysis.objects(analysisName=analysis_info['analysisName']).update(isFilteringDone=TASK_STATUS.RUNNING.value)
+        filter_and_normalize(
+            species=analysis_info['organism'],
+            apply_min_cells=analysis_info['isFilterCells'],
+            apply_min_genes=analysis_info['isFilterGenes'],
+            apply_mt_filter=analysis_info['isQCFilter'],
+            apply_normalization=analysis_info['isNormalizeData'],
+            apply_log=analysis_info['isUseLogTransform'],
+            exp_path=analysis_info['exp_path'],
+            out_path=analysis_info['out_path'],
+            min_genes=int(analysis_info['minNumOfGenes']),
+            min_cells=int(analysis_info['minNumOfCells']),
+            target_sum=int(analysis_info['normalizationScale']),
+            percent_mt=float(analysis_info['qcFilterPercent']),
+        )
+        current_ana.update(isFilteringDone=TASK_STATUS.COMPLETED.value)
+        print("Filtering Done")
+    except Exception as e:
+        print("Error in Filtering", e)
+        current_ana.update(isFilteringDone=TASK_STATUS.FAILED.value)
+        current_ana.update(isAllDone=TASK_STATUS.FAILED.value)
+        current_ana.update(errorMessage="Error in Filtering: " + str(e))
+        killTaskThread(id)
+        return
 
     # Do PCA
-    run_pca(
-        norm_exp_path=analysis_info['pca_exp_path'],
-        out_path=analysis_info['pca_out_path'],
-        n_pcs=int(analysis_info['pcaCount']),
-    )
-    Analysis.objects(analysisName=analysis_info['analysisName']).update(isPCADone=True)
-    print("PCA Done")
+    try:
+        Analysis.objects(analysisName=analysis_info['analysisName']).update(isPCADone=TASK_STATUS.RUNNING.value)
+        run_pca(
+            norm_exp_path=analysis_info['pca_exp_path'],
+            out_path=analysis_info['pca_out_path'],
+            n_pcs=int(analysis_info['pcaCount']),
+        )
+        current_ana.update(isPCADone=TASK_STATUS.COMPLETED.value)
+        print("PCA Done")
+    except Exception as e:
+        print("Error in PCA", e)
+        current_ana.update(isPCADone=TASK_STATUS.FAILED.value)
+        current_ana.update(isAllDone=TASK_STATUS.FAILED.value)
+        current_ana.update(errorMessage="Error in PCA: " + str(e))
+        killTaskThread(id)
+        return
 
     # Do UMAP
-    run_umap(
-        norm_exp_path=analysis_info['pca_exp_path'],
-        input_path=analysis_info['umap_exp_path'],
-        output_path=analysis_info['umap_out_path'],
-        metric=analysis_info['metric'],
-        min_dist=float(analysis_info['min_dist']),
-        n_neighbors=int(analysis_info['n_neighbors']),
-    )
-    Analysis.objects(analysisName=analysis_info['analysisName']).update(isUMAPDone=True)
-    print("UMAP Done")
+    try:
+        Analysis.objects(analysisName=analysis_info['analysisName']).update(isUMAPDone=TASK_STATUS.RUNNING.value)
+        run_umap(
+            norm_exp_path=analysis_info['pca_exp_path'],
+            input_path=analysis_info['umap_exp_path'],
+            output_path=analysis_info['umap_out_path'],
+            metric=analysis_info['metric'],
+            min_dist=float(analysis_info['min_dist']),
+            n_neighbors=int(analysis_info['n_neighbors']),
+        )
+        current_ana.update(isUMAPDone=TASK_STATUS.COMPLETED.value)
+        print("UMAP Done")
+    except Exception as e:
+        print("Error in UMAP", e)
+        current_ana.update(isUMAPDone=TASK_STATUS.FAILED.value)
+        current_ana.update(isAllDone=TASK_STATUS.FAILED.value)
+        current_ana.update(errorMessage="Error in UMAP: " + str(e))
+        killTaskThread(id)
+        return
 
     # Do Clustering
-    addClustering(
-        metadata_path=analysis_info['metadata_path'],
-        umap_path=analysis_info['umap_out_path'],
-        out_path=analysis_info['umap_clustered_path'],
-    )
+    try:
+        addClustering(
+            metadata_path=analysis_info['metadata_path'],
+            umap_path=analysis_info['umap_out_path'],
+            out_path=analysis_info['umap_clustered_path'],
+        )
+        print("Clustering Done")
+    except Exception as e:
+        print("Error in Clustering", e)
+        current_ana.update(errorMessage="Error in Clustering: " + str(e))
 
     # Update Database
-    Analysis.objects(analysisName=analysis_info['analysisName']).update(isAllDone=True)
+    current_ana.update(isAllDone=TASK_STATUS.COMPLETED.value)
 
     task = ThreadTask.objects.get(pk=id)
     task.is_done = True

@@ -4,16 +4,14 @@ from datetime import datetime
 
 from django.http import HttpResponse, JsonResponse
 
+from SingleCellPathwayAnalysis.views import httpMethodError, exceptionInRequest
+
 
 def safe_open_w(path):
     """ Open "path" for writing, creating any parent directories as needed.
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return open(path, 'w')
-
-
-def httpMethodError(expMethod, recMethod):
-    return HttpResponse('Expected method: ' + expMethod + " but received method: " + recMethod, status=404)
 
 
 # Create your views here.
@@ -38,10 +36,9 @@ def upload_file(request):
             return HttpResponse("File Upload", status=200)
 
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
+
     else:
-        print(request)
         return httpMethodError("POST", request.method)
 
 
@@ -79,11 +76,9 @@ def get_all_files(request):
             return JsonResponse({'files': files})
 
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
 
     else:
-        print(request)
         return httpMethodError("GET", request.method)
 
 
@@ -101,8 +96,6 @@ def delete_file(request):
                 print("Error: %s file not found" % file_to_delete)
             return HttpResponse("Success", status=200)
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
     else:
-        print(request)
         return httpMethodError("POST", request.method)
