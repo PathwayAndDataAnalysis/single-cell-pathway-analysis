@@ -4,12 +4,19 @@ import shutil
 
 from django.http import JsonResponse, HttpResponse
 
-from analysis.models import Analysis
-from file_manage.views import httpMethodError, convert_date, safe_open_w
+from SingleCellPathwayAnalysis.views import httpMethodError, exceptionInRequest
+from analysis.models import Analysis, TASK_STATUS
+from file_manage.views import convert_date, safe_open_w
 from pipeline.views import runPipeline
 
 
 def get_all_analysis(request):
+    """
+    Return response listing all the analysis
+
+    @param request:
+    @return:
+    """
     if request.method == "GET":
         try:
             files = []
@@ -40,6 +47,7 @@ def get_all_analysis(request):
                         pcaStatus = Analysis.objects(analysisName=params['analysisName']).first().isPCADone
                         umapStatus = Analysis.objects(analysisName=params['analysisName']).first().isUMAPDone
                         allStatus = Analysis.objects(analysisName=params['analysisName']).first().isAllDone
+                        errorMessage = Analysis.objects(analysisName=params['analysisName']).first().errorMessage
 
                         files.append({"analysisName": entry.name,
                                       "analysisSize": str(round(fileSize, 3)) + " " + sizeUnit,
@@ -50,20 +58,24 @@ def get_all_analysis(request):
                                       "pcaStatus": pcaStatus,
                                       "umapStatus": umapStatus,
                                       "allStatus": allStatus,
+                                      "errorMessage": errorMessage,
                                       })
 
             return JsonResponse({'analysis': files})
 
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
 
     else:
-        print(request)
         return httpMethodError("GET", request.method)
 
 
 def delete_analysis(request):
+    """
+    Delete the analysis
+    @param request:
+    @return:
+    """
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
@@ -76,14 +88,17 @@ def delete_analysis(request):
 
             return HttpResponse("Success", status=200)
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
     else:
-        print(request)
         return httpMethodError("POST", request.method)
 
 
 def create_param_file(req_body):
+    """
+    Create a new param file params.json file
+    @param req_body:
+    @return:
+    """
     param_file = {
         "analysisName": req_body['analysisName'],
         "dataMatrixFile": req_body['dataMatrixFile'],
@@ -128,19 +143,36 @@ def create_param_file(req_body):
     return param_file
 
 
-def update_database(analysis_name: str, is_filtering_done: bool = False, is_pca_done: bool = False,
-                    is_umap_done: bool = False, is_all_done: bool = False):
+def update_database(analysis_name: str,
+                    filtering_status: TASK_STATUS = TASK_STATUS.DEFAULT.value,
+                    pca_status: TASK_STATUS = TASK_STATUS.DEFAULT.value,
+                    umap_status: TASK_STATUS = TASK_STATUS.DEFAULT.value,
+                    completed_status: TASK_STATUS = TASK_STATUS.DEFAULT.value, ):
+    """
+    Update the database with the status of the analysis
+    @param analysis_name:
+    @param filtering_status:
+    @param pca_status:
+    @param umap_status:
+    @param completed_status:
+    """
     # Create a new entry in the database
     analysis = Analysis()
     analysis.analysisName = analysis_name
-    analysis.isFilteringDone = is_filtering_done
-    analysis.isPCADone = is_pca_done
-    analysis.isUMAPDone = is_umap_done
-    analysis.isAllDone = is_all_done
+    analysis.isFilteringDone = filtering_status
+    analysis.isPCADone = pca_status
+    analysis.isUMAPDone = umap_status
+    analysis.isAllDone = completed_status
+    analysis.errorMessage = ""
     analysis.save()
 
 
 def run_analysis(request):
+    """
+    Run the analysis
+    @param request:
+    @return:
+    """
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
@@ -178,15 +210,18 @@ def run_analysis(request):
             return HttpResponse(status=200)
 
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
 
     else:
-        print(request)
         return httpMethodError("GET", request.method)
 
 
 def update_analysis(request):
+    """
+    Update the analysis
+    @param request:
+    @return:
+    """
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
@@ -238,15 +273,18 @@ def update_analysis(request):
             return HttpResponse(status=200)
 
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
 
     else:
-        print(request)
         return httpMethodError("GET", request.method)
 
 
 def get_coordinates(request):
+    """
+    Get the coordinates of the analysis
+    @param request:
+    @return:
+    """
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
@@ -267,9 +305,7 @@ def get_coordinates(request):
             return JsonResponse({'data': data_to_return}, status=200)
 
         except Exception as e:
-            print(e)
-            return HttpResponse('Exception: ' + str(e), status=404)
+            return exceptionInRequest(e)
 
     else:
-        print(request)
         return httpMethodError("POST", request.method)
