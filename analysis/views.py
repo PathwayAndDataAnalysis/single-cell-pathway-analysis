@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+
 import pandas as pd
 from django.http import JsonResponse, HttpResponse
 
@@ -295,6 +296,12 @@ def get_coordinates(request):
             keys = ["Cell", "UMAP1", "UMAP2", "ClusterID"]
             data_to_return = []
             coordinate_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+
+            # df = pd.read_csv(coordinate_file, sep='\t')
+            # df.columns = keys
+            # df.fillna("", inplace=True)
+            # js = df.to_json(orient='records')
+
             with open(coordinate_file, 'r') as f:
                 lines = f.readlines()[1:]
                 for line in lines:
@@ -378,19 +385,6 @@ def get_data_with_metadata_columns(request):
                 result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', column_name]]
                 result.to_csv(out_path, sep='\t', index=False)
 
-                # Response data
-                # keys = ["Cell", "UMAP1", "UMAP2", "ClusterID"]
-                # data_to_return = []
-                # coordinate_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
-                # with open(coordinate_file, 'r') as f:
-                #     lines = f.readlines()[1:]
-                #     for line in lines:
-                #         ll = [i.strip() for i in line.split('\t')]
-                #         dd = {}
-                #         for i, l in enumerate(ll):
-                #             dd[keys[i]] = l
-                #         data_to_return.append(dd)
-                #
                 return JsonResponse({'data': "success"}, status=200)
 
         except Exception as e:

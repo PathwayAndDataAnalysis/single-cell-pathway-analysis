@@ -2,7 +2,7 @@ import threading
 
 import pandas as pd
 import scanpy as sc
-import umap
+from umap.umap_ import UMAP
 from django.http import JsonResponse
 from pandas import DataFrame
 
@@ -105,7 +105,7 @@ def run_umap(norm_exp_path: str, input_path: str, output_path: str, metric: str 
     input_t = input_data
 
     # Run UMAP
-    reducer = umap.UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors, random_state=0)
+    reducer = UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors, random_state=0)
     embedding = reducer.fit_transform(input_t)
 
     # Write the output of UMAP as a file
