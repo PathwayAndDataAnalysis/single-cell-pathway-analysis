@@ -391,3 +391,26 @@ def get_data_with_metadata_columns(request):
             return exceptionInRequest(e)
     else:
         return httpMethodError("POST", request.method)
+
+
+def get_data_using_genes(request):
+    """
+    Get the data using genes
+    @param request:
+    @return:
+    """
+    if request.method == "POST":
+        try:
+            req_body = json.loads(request.body.decode('utf-8'))
+
+            analysis_name: str = req_body['analysisName']
+            gene_list: list = req_body['geneList']
+
+            print('req_body', req_body)
+
+            return JsonResponse({'data': "success"}, status=200)
+
+        except Exception as e:
+            return exceptionInRequest(e)
+    else:
+        return httpMethodError("POST", request.method)
