@@ -1,0 +1,21 @@
+{
+    "analysisName": "Test Analysis 2",
+    "dataMatrixFile": "br2_counts.tsv",
+    "organism": "Mouse",
+    "metaDataFile": "br2_meta_data.tsv",
+    "isFilterCells": true,
+    "isFilterGenes": true,
+    "isQCFilter": true,
+    "isNormalizeData": true,
+    "isUseLogTransform": true,
+    "usePCA": true,
+    "useUMAP": true,
+    "normalizationScale": 10000,
+    "minNumOfCells": 200,
+    "minNumOfGenes": 20,
+    "qcFilterPercent": 10,
+    "pcaCount": "7",
+    "n_neighbors": "20",
+    "min_dist": "0.3",
+    "metric": "cosine"
+}
