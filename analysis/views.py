@@ -406,11 +406,35 @@ def get_data_using_genes(request):
             analysis_name: str = req_body['analysisName']
             gene_list: list = req_body['geneList']
 
-            print('req_body', req_body)
+            file_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_filtered.tsv"
+            df = pd.read_csv(file_path, sep='\t', index_col=0)
 
-            return JsonResponse({'data': "success"}, status=200)
+            df = df.loc[gene_list]
+            df = df.sum(axis=0)
+            print(df.to_json(orient='columns'))
+            return JsonResponse({'data': df.to_json(orient='columns')}, status=200)
 
         except Exception as e:
             return exceptionInRequest(e)
     else:
         return httpMethodError("POST", request.method)
+
+
+# import pandas as pd
+# def subset_marker_expression(exp_data_dir, marker_gene_list):
+#   df = pd.read_csv(exp_data_dir, sep='\t', index_col=0)
+#   df = df.loc[marker_gene_list]
+#   df = df.sum(axis=0)
+#   return df
+#
+# data_dir = './_filtered.tsv'
+# gene_list = ['Tcea1', 'Sema4c', 'Mfsd6', 'Hibch', '9430016H08Rik']
+#
+# print("Testing subset_marker_expression()...")
+#
+# val = subset_marker_expression(data_dir, gene_list)
+#
+# df = pd.DataFrame(val)
+# df.to_csv('test_output.tsv', sep='\t', index=True, header=False)
+#
+# print(val)
