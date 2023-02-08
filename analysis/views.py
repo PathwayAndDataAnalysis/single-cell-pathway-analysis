@@ -372,13 +372,14 @@ def get_data_with_metadata_columns(request):
                 hd[0] = 'cell_id'
                 mt.columns = hd
                 # replace - with .
-                mt['cell_id'] = mt['cell_id'].str.replace('-', '.')
+                mt['cell_id'] = mt['cell_id'].str.replace('.', '-')
 
                 # Read and manage umap
                 coord = pd.read_csv(umap_path, sep='\t')
                 hd = list(coord.columns)
                 hd[0] = 'cell_id'
                 coord.columns = hd
+                coord['cell_id'] = mt['cell_id'].str.replace('.', '-')
 
                 # merge metadata and umap
                 result = coord.merge(mt, how='left', on='cell_id').drop_duplicates()
@@ -386,6 +387,73 @@ def get_data_with_metadata_columns(request):
                 result.to_csv(out_path, sep='\t', index=False)
 
                 return JsonResponse({'data': "success"}, status=200)
+
+        except Exception as e:
+            return exceptionInRequest(e)
+    else:
+        return httpMethodError("POST", request.method)
+
+
+def get_data_with_gene_expression_columns(request):
+    """
+    Get the data with metadata columns
+    @param request:
+    @return:
+    """
+    if request.method == "POST":
+        try:
+            req_body = json.loads(request.body.decode('utf-8'))
+
+            analysis_name = req_body['analysisName']
+            column_name = req_body['columnName']
+
+            expression_path = "data/kisan@gmail.com/files/tf_scores_t.tsv"
+            umap_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap.tsv"
+            out_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+
+            # Read and manage Gene Expression File
+            gene_exp_df = pd.read_csv(expression_path, sep='\t')
+            header = list(gene_exp_df.columns)
+            header[0] = 'cell_id'
+            gene_exp_df.columns = header
+            gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace('.', '-')
+
+            # Read and manage umap file
+            coord = pd.read_csv(umap_path, sep='\t')
+            hd = list(coord.columns)
+            hd[0] = 'cell_id'
+            coord.columns = hd
+            coord['cell_id'] = gene_exp_df['cell_id'].str.replace('.', '-')
+
+            # merge gene exp and umap
+            result = coord.merge(gene_exp_df, how='left', on='cell_id').drop_duplicates()
+            result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', column_name]]
+            result.to_csv(out_path, sep='\t', index=False)
+
+            return JsonResponse({'data': 'success'}, status=200)
+
+        except Exception as e:
+            return exceptionInRequest(e)
+    else:
+        return httpMethodError("POST", request.method)
+
+
+def get_gene_expression_columns(request):
+    """
+    Get the data with metadata columns
+    @param request:
+    @return:
+    """
+    if request.method == "POST":
+        try:
+            req_body = json.loads(request.body.decode('utf-8'))
+            analysis_name = req_body['analysisName']
+
+            exp_file = "data/kisan@gmail.com/files/tf_scores_t.tsv"
+
+            mt = pd.read_csv(exp_file, sep='\t')
+            cols = list(mt.columns)[1:]
+            return JsonResponse({'data': cols}, status=200)
 
         except Exception as e:
             return exceptionInRequest(e)
@@ -428,7 +496,6 @@ def get_data_using_genes(request):
             return exceptionInRequest(e)
     else:
         return httpMethodError("POST", request.method)
-
 
 # import pandas as pd
 # def subset_marker_expression(exp_data_dir, marker_gene_list):

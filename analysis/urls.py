@@ -11,5 +11,9 @@ urlpatterns = [
     path('get_metadata_columns/', views.get_metadata_columns, name='get_metadata_columns'),
     path('get_data_with_metadata_columns/', views.get_data_with_metadata_columns,
          name='get_data_with_metadata_columns'),
+    path('get_data_with_gene_expression_columns/', views.get_data_with_gene_expression_columns,
+         name='get_data_with_gene_expression_columns'),
+    path('get_gene_expression_columns/', views.get_gene_expression_columns,
+         name='get_gene_expression_columns'),
     path('get_data_using_genes/', views.get_data_using_genes, name='get_data_using_genes'),
 ]
