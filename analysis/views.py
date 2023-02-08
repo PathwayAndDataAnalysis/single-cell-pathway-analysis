@@ -406,13 +406,23 @@ def get_data_using_genes(request):
             analysis_name: str = req_body['analysisName']
             gene_list: list = req_body['geneList']
 
-            file_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_filtered.tsv"
-            df = pd.read_csv(file_path, sep='\t', index_col=0)
+            file_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/tf_scores_t.tsv"
+            df = pd.read_csv(file_path, sep='\t')
 
-            df = df.loc[gene_list]
-            df = df.sum(axis=0)
-            print(df.to_json(orient='columns'))
-            return JsonResponse({'data': df.to_json(orient='columns')}, status=200)
+            df = df[["Name", *gene_list]]
+            df['cluster'] = df.sum(axis=1)
+            df = df.drop(columns=gene_list)
+
+            df.columns = ["cell_id", "cluster"]
+            out_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/summed_exp.tsv"
+            df.to_csv(out_path, sep='\t', index=False)
+
+            # Read umap file and merge with df
+            umap_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+            umap_df = pd.read_csv(umap_file, sep='\t')
+            result = umap_df.merge(df, how='left', left_on='cell_id', right_on='cell_id').drop_duplicates()
+
+            return JsonResponse({'data': 'success'}, status=200)
 
         except Exception as e:
             return exceptionInRequest(e)
