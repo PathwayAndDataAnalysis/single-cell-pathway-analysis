@@ -474,21 +474,29 @@ def get_data_using_genes(request):
             analysis_name: str = req_body['analysisName']
             gene_list: list = req_body['geneList']
 
-            file_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/tf_scores_t.tsv"
+            file_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_filtered.tsv"
             df = pd.read_csv(file_path, sep='\t')
-
-            df = df[["Name", *gene_list]]
-            df['cluster'] = df.sum(axis=1)
-            df = df.drop(columns=gene_list)
-
-            df.columns = ["cell_id", "cluster"]
-            out_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/summed_exp.tsv"
-            df.to_csv(out_path, sep='\t', index=False)
+            # df = df.iloc[gene_list]
+            df = df.loc[df[df.columns[0]].isin(gene_list)]
+            df = df.sum(axis=0)
+            df = df.iloc[1:]
+            df = df.to_frame().reset_index()
+            df.columns = ['cell_id', 'exp_value']
 
             # Read umap file and merge with df
-            umap_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
-            umap_df = pd.read_csv(umap_file, sep='\t')
-            result = umap_df.merge(df, how='left', left_on='cell_id', right_on='cell_id').drop_duplicates()
+            umap_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap.tsv"
+            out_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+
+            coord = pd.read_csv(umap_path, sep='\t')
+            hd = list(coord.columns)
+            hd[0] = 'cell_id'
+            coord.columns = hd
+            coord['cell_id'] = df['cell_id'].str.replace('.', '-')
+
+            # merge gene exp and umap
+            result = coord.merge(df, how='left', on='cell_id').drop_duplicates()
+            result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', 'exp_value']]
+            result.to_csv(out_path, sep='\t', index=False)
 
             return JsonResponse({'data': 'success'}, status=200)
 
