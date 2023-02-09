@@ -379,7 +379,7 @@ def get_data_with_metadata_columns(request):
                 hd = list(coord.columns)
                 hd[0] = 'cell_id'
                 coord.columns = hd
-                coord['cell_id'] = mt['cell_id'].str.replace('.', '-')
+                coord['cell_id'] = coord['cell_id'].str.replace('.', '-')
 
                 # merge metadata and umap
                 result = coord.merge(mt, how='left', on='cell_id').drop_duplicates()

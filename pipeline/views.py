@@ -128,6 +128,7 @@ def addClustering(metadata_path, umap_path, out_path):
     hd = list(coord.columns)
     hd[0] = 'cell_id'
     coord.columns = hd
+    coord['cell_id'] = coord['cell_id'].str.replace('.', '-')
 
     # merge metadata and umap
     result = coord.merge(metadata, how='left', on='cell_id').drop_duplicates()
