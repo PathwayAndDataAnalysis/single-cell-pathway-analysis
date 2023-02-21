@@ -371,8 +371,10 @@ def get_data_with_metadata_columns(request):
                 hd = list(mt.columns)
                 hd[0] = 'cell_id'
                 mt.columns = hd
-                # replace - with .
+                # format cell_id column
                 mt['cell_id'] = mt['cell_id'].str.replace('.', '-')
+                mt['cell_id'] = mt['cell_id'].str.replace('_', '-')
+                mt['cell_id'] = mt['cell_id'].str.replace(' ', '-')
 
                 # Read and manage umap
                 coord = pd.read_csv(umap_path, sep='\t')
@@ -380,6 +382,8 @@ def get_data_with_metadata_columns(request):
                 hd[0] = 'cell_id'
                 coord.columns = hd
                 coord['cell_id'] = coord['cell_id'].str.replace('.', '-')
+                coord['cell_id'] = coord['cell_id'].str.replace('_', '-')
+                coord['cell_id'] = coord['cell_id'].str.replace(' ', '-')
 
                 # merge metadata and umap
                 result = coord.merge(mt, how='left', on='cell_id').drop_duplicates()
@@ -417,6 +421,8 @@ def get_data_with_gene_expression_columns(request):
             header[0] = 'cell_id'
             gene_exp_df.columns = header
             gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace('.', '-')
+            gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace('_', '-')
+            gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace(' ', '-')
 
             # Read and manage umap file
             coord = pd.read_csv(umap_path, sep='\t')
@@ -424,6 +430,8 @@ def get_data_with_gene_expression_columns(request):
             hd[0] = 'cell_id'
             coord.columns = hd
             coord['cell_id'] = gene_exp_df['cell_id'].str.replace('.', '-')
+            coord['cell_id'] = gene_exp_df['cell_id'].str.replace('_', '-')
+            coord['cell_id'] = gene_exp_df['cell_id'].str.replace(' ', '-')
 
             # merge gene exp and umap
             result = coord.merge(gene_exp_df, how='left', on='cell_id').drop_duplicates()
