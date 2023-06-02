@@ -171,3 +171,25 @@ def generate_cumulative_weights(flow_matrices, target_indicator, max_arrive_inde
             weights[i] += m_list[j][i]
 
     return sub_flow_cum
+
+def generate_sub_flow(pca_matrix,source_indicator,target_indicator,simulation_length,sigmasq):
+
+    # Generate the similarity matrix based on distances on the data
+    # sigmasq=30, sigmasq=1
+    sim = get_similarity_matrix(pca_matrix, sigmasq)
+
+    # Generate the transition probabilities based on the distances
+    p_mat = get_probability_matrix(sim)
+    # Target cells absorb the heat. They don't transmit any of it. They are sinks in the system.
+    p_mat[target_indicator,:] = 0
+
+    # Decide how many steps the simulation will be
+    # simulation_length = 50 as default
+
+    # Simulate the heat distribution
+    flows, sinks = generate_flow_matrices(p_mat, source_indicator, target_indicator, simulation_length)
+
+    # Using the flows, get the distribution of the heat (at each step) that reaches the target at the end of the simulation or earlier. Weight: Heat that reaches the target during the simulation.
+    sub_flow = generate_cumulative_weights(flows, target_indicator, -1)
+
+    return sub_flow
