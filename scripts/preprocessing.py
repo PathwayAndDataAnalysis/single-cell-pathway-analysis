@@ -59,7 +59,7 @@ def filter_and_normalize(species: str, apply_min_cells: bool, apply_min_genes: b
 
 def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
     """
-    This function gets normalized expression matrix as an input. First it finds highly variable genes and substracts
+    This function gets normalized expression matrix as an input. First it finds highly variable genes and subtracts
     them. Then it performs scaling, and PCA.
 
     @param norm_exp_path:
