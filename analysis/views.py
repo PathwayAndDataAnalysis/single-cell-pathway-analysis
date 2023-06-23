@@ -340,6 +340,7 @@ def get_data_with_metadata_columns(request):
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
+            print('req_body', req_body)
 
             analysis_name = req_body['analysisName']
             column_name = req_body['columnName']
@@ -353,29 +354,16 @@ def get_data_with_metadata_columns(request):
                 meta_file = meta_data['metaDataFile']
 
                 # Read and manage metadata file
-                mt = pd.read_csv("data/kisan@gmail.com/files/" + meta_file, sep='\t')
-                hd = list(mt.columns)
-                hd[0] = 'cell_id'
-                mt.columns = hd
-                # format cell_id column
-                mt['cell_id'] = mt['cell_id'].str.replace('.', '-')
-                mt['cell_id'] = mt['cell_id'].str.replace('_', '-')
-                mt['cell_id'] = mt['cell_id'].str.replace(' ', '-')
+                mt = pd.read_csv("data/kisan@gmail.com/files/" + meta_file, sep='\t', index_col=0)
+                mt.index = mt.index.str.replace(' ', '.')
+                mt.index = mt.index.str.replace('-', '.')
 
                 # Read and manage umap
-                coord = pd.read_csv(umap_path, sep='\t')
-                hd = list(coord.columns)
-                hd[0] = 'cell_id'
-                coord.columns = hd
-                coord['cell_id'] = coord['cell_id'].str.replace('.', '-')
-                coord['cell_id'] = coord['cell_id'].str.replace('_', '-')
-                coord['cell_id'] = coord['cell_id'].str.replace(' ', '-')
+                coord = pd.read_csv(umap_path, sep='\t', index_col=0)
 
                 # merge metadata and umap
-                result = coord.merge(mt, how='left', on='cell_id').drop_duplicates()
-                result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', column_name]]
-                result.to_csv(out_path, sep='\t', index=False)
-
+                result = coord.merge(mt[column_name], how="left", left_index=True, right_index=True)
+                result.to_csv(out_path, sep='\t')
                 return JsonResponse({'data': "success"}, status=200)
 
         except Exception as e:
