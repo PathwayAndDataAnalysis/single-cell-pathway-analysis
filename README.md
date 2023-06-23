@@ -7,3 +7,7 @@
 - MongoDB 6.0
 - pipenv
 
+## Run the server
+```bash
+python manage.py runserver 
+```

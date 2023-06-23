@@ -4,7 +4,6 @@ import pandas as pd
 import scanpy as sc
 from umap.umap_ import UMAP
 from django.http import JsonResponse
-from pandas import DataFrame
 
 from analysis.models import Analysis, TASK_STATUS
 from pipeline.models import ThreadTask
@@ -18,122 +17,113 @@ def filter_and_normalize(species: str, apply_min_cells: bool, apply_min_genes: b
     This function applies several preprocessing steps on the expression matrix. According to user preferences it can
     filter genes by minimum number of expression in cells, filter cells by minimum number of genes, filter cells by
     maximum mitochondrial content, it can scal and log normalize.
-    @param species:
-    @param apply_min_cells:
-    @param apply_min_genes:
+    @param species: Species of the expression matrix
+    @param apply_min_cells: If True, filter cells by minimum number of genes
+    @param apply_min_genes: If True, filter genes by minimum number of expression in cells
     @param apply_mt_filter:
     @param apply_normalization:
     @param apply_log:
     @param exp_path: Expression file path
-    @param out_path:
+    @param out_path: Output file path for the filtered expression matrix file
     @param min_genes:
     @param min_cells:
     @param target_sum:
     @param percent_mt:
     """
-    adata = sc.read(exp_path).T
+    data = sc.read(exp_path).T
 
     # Filter genes and cells
     if apply_min_cells:
-        sc.pp.filter_cells(adata, min_genes=min_genes)  # 200
+        sc.pp.filter_cells(data, min_genes=min_genes)  # 200
     if apply_min_genes:
-        sc.pp.filter_genes(adata, min_cells=min_cells)  # 3
+        sc.pp.filter_genes(data, min_cells=min_cells)  # 3
 
     # Find mitochondrial gene percentage based on the species, filter them using the given cutoff
     if apply_mt_filter:
         if species == "Mouse":
-            adata.var['mt'] = adata.var_names.str.startswith('mt-')
+            data.var['mt'] = data.var_names.str.startswith('mt-')
         elif species == "Human":
-            adata.var['mt'] = adata.var_names.str.startswith('MT-')
+            data.var['mt'] = data.var_names.str.startswith('MT-')
         else:
             raise Exception("This species is not supported: " + species)
 
-        sc.pp.calculate_qc_metrics(adata, qc_vars=['mt'], percent_top=None, log1p=False, inplace=True)
-        adata = adata[adata.obs.pct_counts_mt < percent_mt, :]
+        sc.pp.calculate_qc_metrics(data, qc_vars=['mt'], percent_top=None, log1p=False, inplace=True)
+        data = data[data.obs.pct_counts_mt < percent_mt, :]
 
     # Apply scaling and log normalization
     if apply_normalization:
-        sc.pp.normalize_total(adata, target_sum=target_sum)
+        sc.pp.normalize_total(data, target_sum=target_sum)
     if apply_log:
-        sc.pp.log1p(adata)
+        sc.pp.log1p(data)
 
     # Write the processed expression matrix
-    pd.DataFrame(data=adata.X, index=adata.obs_names, columns=adata.var_names).T.to_csv(out_path, sep="\t")
+    pd.DataFrame(data=data.X, index=data.obs_names, columns=data.var_names.str.upper()).to_csv(out_path, sep="\t")
 
 
 def run_pca(norm_exp_path: str, out_path: str, n_pcs: int = 10) -> None:
     """
     This function gets normalized expression matrix as an input. First it finds highly variable genes and substracts
     them. Then it performs scaling, and PCA.
-    @param norm_exp_path:
-    @param out_path:
-    @param n_pcs:
+    @param norm_exp_path: Normalized/Filtered expression matrix file path
+    @param out_path: Output file path for the PCA components
+    @param n_pcs: Number of PCA components
     """
-
-    adata = sc.read(norm_exp_path).T
+    data = sc.read(norm_exp_path)
 
     # Find highly variable genes and subtract them
-    sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
-    adata = adata[:, adata.var.highly_variable]
+    sc.pp.highly_variable_genes(data, min_mean=0.0125, max_mean=3, min_disp=0.5)
+    data = data[:, data.var.highly_variable]
 
     # Scale then perform PCA analysis
-    sc.pp.scale(adata)
-    sc.tl.pca(adata, svd_solver='arpack')
+    sc.pp.scale(data)
+    sc.tl.pca(data, svd_solver='arpack')
 
     # Write the k PCA components in to a file
-    pc_table = adata.obsm['X_pca'][:, 0:n_pcs]
-    pd.DataFrame(data=pc_table, index=adata.obs_names).to_csv(out_path, sep="\t")
+    pc_table = data.obsm['X_pca'][:, 0:n_pcs]
+    pd.DataFrame(data=pc_table, index=data.obs_names).to_csv(out_path, sep="\t", index_label="CellID")
 
 
 # input path should be the output of sc_PCA function
-def run_umap(norm_exp_path: str, input_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
+def run_umap(pca_path: str, output_path: str, metric: str = 'euclidean', min_dist: float = 0.1,
              n_neighbors: int = 15) -> None:
     """
     This function gets PCA components as an input file and find distances using those components.
     It outputs file containing 2D locations using UMAP function.
-    @param norm_exp_path:
-    @param input_path:
-    @param output_path:
+    @param pca_path: PCA components file path
+    @param output_path: Output file path for the UMAP components
     @param metric:
     @param min_dist:
     @param n_neighbors:
     """
-    adata = sc.read(norm_exp_path).T
     # Read the file containing k PCA components
-    input_data = pd.read_table(input_path, index_col=0)
-    # transpose is needed because pca output is transposed
-    input_t = input_data
+    pca_data = pd.read_table(pca_path, index_col=0)
 
     # Run UMAP
     reducer = UMAP(metric=metric, min_dist=min_dist, n_neighbors=n_neighbors, random_state=0)
-    embedding = reducer.fit_transform(input_t)
+    embedding = reducer.fit_transform(pca_data)
 
     # Write the output of UMAP as a file
-    umap_df: DataFrame = pd.DataFrame(data=embedding, index=adata.obs_names, columns=['umap comp. 1', 'umap comp. 2'])
-    umap_df.to_csv(output_path, sep="\t")
+    pd.DataFrame(data=embedding, index=pca_data.index, columns=['UMAP1', 'UMAP2']).to_csv(output_path, sep="\t",
+                                                                                          index_label="CellID")
 
 
 # Add Clustering
 def addClustering(metadata_path, umap_path, out_path):
-    # Read and manage metadata file
-    metadata = pd.read_csv(metadata_path, sep='\t')
-    hd = list(metadata.columns)
-    hd[0] = 'cell_id'
-    metadata.columns = hd
-    # replace - with .
-    metadata['cell_id'] = metadata['cell_id'].str.replace('-', '.')
+    """
+    This function gets metadata and UMAP components as an input file and merge them.
+    @param metadata_path: Metadata file path
+    @param umap_path: UMAP components file path
+    @param out_path: Output file path for the merged file
+    @return:
+    """
+    metadata = pd.read_csv(metadata_path, sep='\t', index_col=0)
+    metadata.index = metadata.index.str.replace('-', '.')
+    metadata.index = metadata.index.str.replace(' ', '.')
 
-    # Read and manage umap
-    coord = pd.read_csv(umap_path, sep='\t')
-    hd = list(coord.columns)
-    hd[0] = 'cell_id'
-    coord.columns = hd
-    coord['cell_id'] = coord['cell_id'].str.replace('.', '-')
-
+    coord = pd.read_csv(umap_path, sep='\t', index_col=0)
     # merge metadata and umap
-    result = coord.merge(metadata, how='left', on='cell_id').drop_duplicates()
-    result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', 'seurat_clusters']]
-    result.to_csv(out_path, sep='\t', index=False)
+    result = coord.merge(metadata["seurat_clusters"], how="left", left_index=True, right_index=True)
+    result.to_csv(out_path, sep='\t')
 
 
 # Create your views here.
@@ -219,8 +209,7 @@ def processRunningTask(id, analysis_info):
     try:
         Analysis.objects(analysisName=analysis_info['analysisName']).update(isUMAPDone=TASK_STATUS.RUNNING.value)
         run_umap(
-            norm_exp_path=analysis_info['pca_exp_path'],
-            input_path=analysis_info['umap_exp_path'],
+            pca_path=analysis_info['umap_exp_path'],
             output_path=analysis_info['umap_out_path'],
             metric=analysis_info['metric'],
             min_dist=float(analysis_info['min_dist']),

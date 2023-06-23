@@ -14,7 +14,6 @@ from pipeline.views import runPipeline
 def get_all_analysis(request):
     """
     Return response listing all the analysis
-
     @param request:
     @return:
     """
@@ -292,25 +291,12 @@ def get_coordinates(request):
             print('req_body', req_body)
 
             analysis_name = req_body['analysisName']
+            umap_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
 
-            keys = ["Cell", "UMAP1", "UMAP2", "ClusterID"]
-            data_to_return = []
-            coordinate_file = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
+            umap = pd.read_csv(umap_file, sep='\t')
+            umap.columns = ['Cell', 'UMAP1', 'UMAP2', 'ClusterID']
 
-            # df = pd.read_csv(coordinate_file, sep='\t')
-            # df.columns = keys
-            # df.fillna("", inplace=True)
-            # js = df.to_json(orient='records')
-
-            with open(coordinate_file, 'r') as f:
-                lines = f.readlines()[1:]
-                for line in lines:
-                    ll = [i.strip() for i in line.split('\t')]
-                    dd = {}
-                    for i, l in enumerate(ll):
-                        dd[keys[i]] = l
-                    data_to_return.append(dd)
-            return JsonResponse({'data': data_to_return}, status=200)
+            return JsonResponse({'data': eval(umap.to_json(orient='records'))}, status=200)
 
         except Exception as e:
             return exceptionInRequest(e)
@@ -407,41 +393,28 @@ def get_data_with_gene_expression_columns(request):
     if request.method == "POST":
         try:
             req_body = json.loads(request.body.decode('utf-8'))
+            print('req_body', req_body)
 
             analysis_name = req_body['analysisName']
             column_name = req_body['columnName']
 
-            expression_path = "data/kisan@gmail.com/files/tf_scores_t.tsv"
+            tf_score_file = "data/kisan@gmail.com/files/tf_scores_t2.tsv"
             umap_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap.tsv"
             out_path = "data/kisan@gmail.com/analysis/" + analysis_name + "/_umap_clustered.tsv"
 
             # Read and manage Gene Expression File
-            gene_exp_df = pd.read_csv(expression_path, sep='\t')
-            header = list(gene_exp_df.columns)
-            header[0] = 'cell_id'
-            gene_exp_df.columns = header
-            gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace('.', '-')
-            gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace('_', '-')
-            gene_exp_df['cell_id'] = gene_exp_df['cell_id'].str.replace(' ', '-')
+            tf_score_df = pd.read_csv(tf_score_file, sep='\t', index_col=0)
 
             # Read and manage umap file
-            coord = pd.read_csv(umap_path, sep='\t')
-            hd = list(coord.columns)
-            hd[0] = 'cell_id'
-            coord.columns = hd
-            coord['cell_id'] = gene_exp_df['cell_id'].str.replace('.', '-')
-            coord['cell_id'] = gene_exp_df['cell_id'].str.replace('_', '-')
-            coord['cell_id'] = gene_exp_df['cell_id'].str.replace(' ', '-')
-
-            # merge gene exp and umap
-            result = coord.merge(gene_exp_df, how='left', on='cell_id').drop_duplicates()
-            result = result[['cell_id', 'umap comp. 1', 'umap comp. 2', column_name]]
-            result.to_csv(out_path, sep='\t', index=False)
+            coord = pd.read_csv(umap_path, sep='\t', index_col=0)
+            result = coord.merge(tf_score_df[column_name], how="left", left_index=True, right_index=True)
+            result.to_csv(out_path, sep='\t')
 
             return JsonResponse({'data': 'success'}, status=200)
 
         except Exception as e:
             return exceptionInRequest(e)
+
     else:
         return httpMethodError("POST", request.method)
 
@@ -457,7 +430,7 @@ def get_gene_expression_columns(request):
             req_body = json.loads(request.body.decode('utf-8'))
             analysis_name = req_body['analysisName']
 
-            exp_file = "data/kisan@gmail.com/files/tf_scores_t.tsv"
+            exp_file = "data/kisan@gmail.com/files/tf_scores_t2.tsv"
 
             mt = pd.read_csv(exp_file, sep='\t')
             cols = list(mt.columns)[1:]
@@ -512,22 +485,3 @@ def get_data_using_genes(request):
             return exceptionInRequest(e)
     else:
         return httpMethodError("POST", request.method)
-
-# import pandas as pd
-# def subset_marker_expression(exp_data_dir, marker_gene_list):
-#   df = pd.read_csv(exp_data_dir, sep='\t', index_col=0)
-#   df = df.loc[marker_gene_list]
-#   df = df.sum(axis=0)
-#   return df
-#
-# data_dir = './_filtered.tsv'
-# gene_list = ['Tcea1', 'Sema4c', 'Mfsd6', 'Hibch', '9430016H08Rik']
-#
-# print("Testing subset_marker_expression()...")
-#
-# val = subset_marker_expression(data_dir, gene_list)
-#
-# df = pd.DataFrame(val)
-# df.to_csv('test_output.tsv', sep='\t', index=True, header=False)
-#
-# print(val)
